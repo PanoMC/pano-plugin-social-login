@@ -167,7 +167,7 @@
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
   import ApiUtil from '@panomc/sdk/utils/api';
-  import { showToast } from '@panomc/sdk/toasts';
+  import { showSuccessToast, showErrorToast } from '../../toast.util.js';
 
   export let addon;
 
@@ -264,10 +264,10 @@
       }
       form = form;
       initialSnapshot = snapshot(form);
-      await showToast('components.toasts.settings-save-success');
+      await showSuccessToast('components.toasts.settings-save-success');
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to save config', e);
-      await showToast('components.toasts.settings-save-error');
+      await showErrorToast('components.toasts.settings-save-error');
     } finally {
       saving = false;
     }

@@ -3,7 +3,6 @@ package com.panomc.plugins.sociallogin.routes.api
 import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.model.*
-import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.error.InvalidFlowState
 import com.panomc.plugins.sociallogin.service.SocialLoginService
@@ -53,7 +52,6 @@ class Social2faVerifyAPI(
 
     override suspend fun handle(context: RoutingContext): Result {
         socialLoginService.enforceAuthRateLimit(context)
-        LicenseGuard.assert(plugin)
 
         val body = context.body().asJsonObject()
         val pendingToken = body.getString("pendingToken")

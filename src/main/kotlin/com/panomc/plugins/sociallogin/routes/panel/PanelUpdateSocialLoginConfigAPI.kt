@@ -61,6 +61,15 @@ class PanelUpdateSocialLoginConfigAPI(
                         .optionalProperty("twitterEnabled", booleanSchema())
                         .optionalProperty("twitterClientId", stringSchema())
                         .optionalProperty("twitterClientSecret", stringSchema())
+                        .optionalProperty("githubEnabled", booleanSchema())
+                        .optionalProperty("githubClientId", stringSchema())
+                        .optionalProperty("githubClientSecret", stringSchema())
+                        .optionalProperty("twitchEnabled", booleanSchema())
+                        .optionalProperty("twitchClientId", stringSchema())
+                        .optionalProperty("twitchClientSecret", stringSchema())
+                        .optionalProperty("instagramEnabled", booleanSchema())
+                        .optionalProperty("instagramClientId", stringSchema())
+                        .optionalProperty("instagramClientSecret", stringSchema())
                 )
             )
             .build()
@@ -71,22 +80,36 @@ class PanelUpdateSocialLoginConfigAPI(
         val body = context.body().asJsonObject()
         val current = configManager.config
 
+        // A blank or omitted secret means "unchanged" — never let an empty value wipe a stored
+        // secret (the UI only sends a secret when the admin actually typed a new one).
+        fun secret(key: String, currentValue: String) =
+            body.getString(key)?.takeIf { it.isNotBlank() } ?: currentValue
+
         // Merge: every field falls back to its current value when the body omits it.
         val merged = JsonObject()
             .put("redirectBaseUrl", body.getString("redirectBaseUrl", current.redirectBaseUrl))
             .put("debugLogging", body.getBoolean("debugLogging", current.debugLogging))
             .put("googleEnabled", body.getBoolean("googleEnabled", current.googleEnabled))
             .put("googleClientId", body.getString("googleClientId", current.googleClientId))
-            .put("googleClientSecret", body.getString("googleClientSecret", current.googleClientSecret))
+            .put("googleClientSecret", secret("googleClientSecret", current.googleClientSecret))
             .put("discordEnabled", body.getBoolean("discordEnabled", current.discordEnabled))
             .put("discordClientId", body.getString("discordClientId", current.discordClientId))
-            .put("discordClientSecret", body.getString("discordClientSecret", current.discordClientSecret))
+            .put("discordClientSecret", secret("discordClientSecret", current.discordClientSecret))
             .put("facebookEnabled", body.getBoolean("facebookEnabled", current.facebookEnabled))
             .put("facebookClientId", body.getString("facebookClientId", current.facebookClientId))
-            .put("facebookClientSecret", body.getString("facebookClientSecret", current.facebookClientSecret))
+            .put("facebookClientSecret", secret("facebookClientSecret", current.facebookClientSecret))
             .put("twitterEnabled", body.getBoolean("twitterEnabled", current.twitterEnabled))
             .put("twitterClientId", body.getString("twitterClientId", current.twitterClientId))
-            .put("twitterClientSecret", body.getString("twitterClientSecret", current.twitterClientSecret))
+            .put("twitterClientSecret", secret("twitterClientSecret", current.twitterClientSecret))
+            .put("githubEnabled", body.getBoolean("githubEnabled", current.githubEnabled))
+            .put("githubClientId", body.getString("githubClientId", current.githubClientId))
+            .put("githubClientSecret", secret("githubClientSecret", current.githubClientSecret))
+            .put("twitchEnabled", body.getBoolean("twitchEnabled", current.twitchEnabled))
+            .put("twitchClientId", body.getString("twitchClientId", current.twitchClientId))
+            .put("twitchClientSecret", secret("twitchClientSecret", current.twitchClientSecret))
+            .put("instagramEnabled", body.getBoolean("instagramEnabled", current.instagramEnabled))
+            .put("instagramClientId", body.getString("instagramClientId", current.instagramClientId))
+            .put("instagramClientSecret", secret("instagramClientSecret", current.instagramClientSecret))
 
         configManager.saveConfig(merged)
 

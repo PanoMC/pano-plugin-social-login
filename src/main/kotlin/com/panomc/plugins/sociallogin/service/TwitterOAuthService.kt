@@ -14,13 +14,13 @@ class TwitterOAuthService(
 ) : OAuthProvider(configManager, vertx) {
     override val provider = SocialProvider.TWITTER
 
-    /** Twitter/X OAuth 2.0 mandates PKCE even for confidential clients. */
+    /** X (formerly Twitter) OAuth 2.0 mandates PKCE even for confidential clients. */
     override val usesPkce = true
 
     companion object {
-        private const val AUTH_URL = "https://twitter.com/i/oauth2/authorize"
-        private const val TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
-        private const val USER_URL = "https://api.twitter.com/2/users/me?user.fields=profile_image_url"
+        private const val AUTH_URL = "https://x.com/i/oauth2/authorize"
+        private const val TOKEN_URL = "https://api.x.com/2/oauth2/token"
+        private const val USER_URL = "https://api.x.com/2/users/me?user.fields=profile_image_url"
         private const val SCOPE = "users.read tweet.read"
     }
 
@@ -68,11 +68,11 @@ class TwitterOAuthService(
         val tokenBody = tokenResponse.bodyAsJsonObject()
         if (tokenBody.containsKey("error")) {
             throw RuntimeException(
-                "Twitter token exchange failed: ${tokenBody.getString("error_description", tokenBody.getString("error"))}"
+                "X token exchange failed: ${tokenBody.getString("error_description", tokenBody.getString("error"))}"
             )
         }
         val accessToken = tokenBody.getString("access_token")
-            ?: throw RuntimeException("Twitter token exchange returned no access_token")
+            ?: throw RuntimeException("X token exchange returned no access_token")
 
         debugLog("Fetching user info...")
         val userResponse = webClient.getAbs(USER_URL)
@@ -82,17 +82,17 @@ class TwitterOAuthService(
             .coAwait()
 
         if (userResponse.statusCode() != 200) {
-            throw RuntimeException("Twitter user request failed: ${userResponse.statusCode()}")
+            throw RuntimeException("X user request failed: ${userResponse.statusCode()}")
         }
 
         val data = userResponse.bodyAsJsonObject().getJsonObject("data")
-            ?: throw RuntimeException("Twitter user response had no data")
+            ?: throw RuntimeException("X user response had no data")
         val id = data.getString("id")
-            ?: throw RuntimeException("Twitter user response had no id")
+            ?: throw RuntimeException("X user response had no id")
         val name = data.getString("name")
         val avatarUrl = data.getString("profile_image_url")
 
-        // Twitter/X OAuth 2.0 does not expose the account email.
+        // X (formerly Twitter) OAuth 2.0 does not expose the account email.
         return SocialProfile(provider, id, null, false, name, avatarUrl)
     }
 }

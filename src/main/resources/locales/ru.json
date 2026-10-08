@@ -2,7 +2,29 @@
   "continue-with": "Продолжить с {provider}",
   "error": {
     "generic": "Что-то пошло не так. Пожалуйста, попробуйте снова.",
-    "connection": "Ошибка соединения. Пожалуйста, попробуйте снова."
+    "connection": "Ошибка соединения. Пожалуйста, попробуйте снова.",
+    "INVALID_FLOW_STATE": "Ссылка для входа недействительна или устарела. Начните заново.",
+    "PROVIDER_NOT_ENABLED": "Этот способ входа сейчас недоступен.",
+    "SOCIAL_ACCOUNT_ALREADY_LINKED": "Этот аккаунт уже привязан к другому пользователю.",
+    "NOT_LOGGED_IN": "Для этого нужно войти в систему.",
+    "RATE_LIMITED": "Слишком много попыток. Подождите немного и попробуйте снова.",
+    "NOT_FOUND": "Что-то пошло не так. Пожалуйста, попробуйте снова.",
+    "LICENSE_REQUIRED": "Этот способ входа сейчас недоступен.",
+    "access_denied": "Вход отменён.",
+    "TWO_FACTOR_INVALID_CODE": "Неверный или просроченный код. Попробуйте снова.",
+    "TWO_FACTOR_REQUIRED": "Требуется код двухфакторной аутентификации.",
+    "PLUGIN_DENIED_LOGIN": "Проверка не пройдена. Пройдите проверку и попробуйте снова.",
+    "NO_PANEL_ACCESS": "У этой учётной записи нет доступа к панели управления.",
+    "NO_LINKED_ACCOUNT": "К этому способу входа ещё не привязана учётная запись. Войдите с паролем."
+  },
+  "two-factor": {
+    "title": "Двухфакторная аутентификация",
+    "description": "Введите код из приложения-аутентификатора, чтобы завершить вход.",
+    "code-label": "Код подтверждения",
+    "submit": "Подтвердить",
+    "submitting": "Проверка...",
+    "success": "Подтверждено! Перенаправление...",
+    "back-to-login": "Назад ко входу"
   },
   "sidebar": {
     "title": "Привязанные социальные аккаунты",
@@ -44,7 +66,8 @@
     "email-label": "Эл. почта",
     "password-label": "Пароль",
     "password-repeat-label": "Повторите пароль",
-    "agreement": "Я принимаю условия использования и политику конфиденциальности.",
+    "agreement": "Я прочитал и принимаю {link}.",
+    "server-rules": "Правила сервера",
     "submit": "Создать аккаунт",
     "submitting": "Создание аккаунта...",
     "success": "Аккаунт создан! Перенаправление...",
@@ -95,8 +118,29 @@
     "client-id": "Client ID",
     "client-secret": "Client Secret",
     "client-secret-new-placeholder": "Введите новый client secret",
+    "reveal-desc": "Введите пароль, чтобы показать client secret.",
+    "reveal-password-placeholder": "Ваш пароль",
+    "reveal-cancel": "Отмена",
+    "reveal-confirm": "Подтвердить",
+    "reveal-error": "Неверный пароль.",
     "redirect-uri": "Redirect URI",
     "redirect-uri-desc": "Зарегистрируйте этот точный URI в консоли разработчика провайдера.",
+    "guide": {
+      "heading": "Руководство по настройке",
+      "intro": "Чтобы включить {provider}, создайте OAuth-приложение в консоли разработчика и скопируйте Client ID и Secret сюда. Пошагово:",
+      "scopes-label": "Необходимые разрешения",
+      "open-console": "Открыть консоль разработчика",
+      "open-docs": "Официальная документация"
+    },
+    "guide-notes": {
+      "google": "Откройте Google Cloud Console и создайте или выберите проект.\nНастройте «APIs & Services → OAuth consent screen» (User type «External», название приложения, email поддержки).\nПерейдите в «APIs & Services → Credentials → Create credentials → OAuth client ID» и выберите тип приложения «Web application».\nВ «Authorized redirect URIs» добавьте показанный ниже Redirect URI (должен совпадать точно) и нажмите Create.\nСкопируйте показанные Client ID и Client Secret в поля выше.",
+      "discord": "Откройте Discord Developer Portal и нажмите «New Application», задайте имя.\nОткройте вкладку «OAuth2» в левом меню.\nСкопируйте Client ID и Client Secret из «OAuth2 → General» в поля выше (если секрет не показан, нажмите «Reset Secret»).\nВ «OAuth2 → Redirects» нажмите «Add Redirect», вставьте показанный ниже Redirect URI и сохраните.",
+      "facebook": "Откройте Meta for Developers → «My Apps» → «Create app» и выберите тип с Facebook Login.\nДобавьте продукт «Facebook Login».\nВ «App settings → Basic» скопируйте App ID (Client ID) и App Secret (Client Secret) в поля выше.\nВ «Facebook Login → Settings» добавьте показанный ниже Redirect URI в «Valid OAuth Redirect URIs» и сохраните.\nПереведите приложение в режим «Live», чтобы входить могли реальные пользователи, а не только тестировщики.",
+      "twitter": "Откройте X Developer Portal, создайте Project, затем App внутри него.\nВ приложении откройте «User authentication settings» и нажмите «Set up».\nВключите «OAuth 2.0», укажите «Type of App» = «Web App» (конфиденциальный клиент) и добавьте показанный ниже Redirect URI как Callback URI; заполните адрес сайта и сохраните.\nВ «Keys and tokens» скопируйте OAuth 2.0 Client ID и Client Secret в поля выше.",
+      "github": "Откройте GitHub «Settings → Developer settings → OAuth Apps» и нажмите «New OAuth App».\nЗаполните название приложения и homepage URL.\nУкажите в «Authorization callback URL» показанный ниже Redirect URI.\nНажмите «Register application», скопируйте Client ID, затем «Generate a new client secret» и скопируйте его в поля выше.",
+      "twitch": "Откройте Twitch Developer Console → «Applications» → «Register Your Application».\nЗаполните имя и категорию.\nУкажите в «OAuth Redirect URLs» показанный ниже Redirect URI.\nСоздайте приложение, скопируйте Client ID, нажмите «New Secret» и скопируйте оба значения в поля выше.",
+      "instagram": "Откройте Meta for Developers → «Create app» и выберите приложение типа «Business».\nДобавьте продукт «Instagram» и выберите «Instagram API with Instagram Login».\nВ настройке API добавьте показанный ниже Redirect URI в список OAuth redirect URI.\nСкопируйте Instagram app ID (Client ID) и Instagram app secret (Client Secret) в поля выше.\nДобавьте тестировщиков Instagram (или отправьте на App Review) — до одобрения входить могут только добавленные тестировщики."
+    },
     "debug-logging": "Журнал отладки",
     "debug-logging-desc": "Записывает подробную пошаговую информацию во время OAuth-процессов. Полезно для диагностики.",
     "save": "Сохранить"

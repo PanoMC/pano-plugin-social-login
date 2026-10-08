@@ -1,13 +1,14 @@
 package com.panomc.plugins.sociallogin.routes.api
 
-import com.panomc.platform.PluginEventManager
 import com.panomc.platform.annotation.Endpoint
-import com.panomc.platform.api.event.AuthEventListener
 import com.panomc.platform.auth.AuthProvider
+import com.panomc.platform.api.event.AuthEventListener
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.PluginDeniedLogin
 import com.panomc.platform.model.*
 import com.panomc.platform.util.RegisterUtil
 import com.panomc.platform.util.TextUtil
+import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -66,6 +67,9 @@ class SocialRegisterCompleteAPI(
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
+        socialLoginService.enforceAuthRateLimit(context)
+        LicenseGuard.assert(plugin)
+
         val body = context.body().asJsonObject()
         val pendingToken = body.getString("pendingToken")
         val username = TextUtil.stripWhitespace(body.getString("username") ?: "")
@@ -75,6 +79,14 @@ class SocialRegisterCompleteAPI(
         val agreement = body.getBoolean("agreement")
 
         val sqlClient = getSqlClient()
+
+        // Run the core pre-auth hooks (e.g. captcha) before consuming the pending token or creating
+        // the account, so a failed check leaves the flow retryable. We tell listeners this is a
+        // "register" phase so they apply the right policy without sniffing the URL.
+        context.put("pano-auth-phase", "register")
+        (authProvider.runOnBeforeAuthenticate(context, sqlClient) as? AuthEventListener.LoginDecision.Deny)?.let {
+            throw PluginDeniedLogin(it.errorKey, it.extras)
+        }
 
         val payload = socialLoginService.consumePendingRegistration(pendingToken, sqlClient)
             ?: throw InvalidFlowState()
@@ -103,7 +115,7 @@ class SocialRegisterCompleteAPI(
             databaseManager.userDao.makeEmailVerifiedById(userId, sqlClient)
         }
 
-        socialLoginLinkDao.add(
+        socialLoginService.addLinkUnique(
             SocialLoginLink(
                 userId = userId,
                 provider = provider.key,
@@ -114,12 +126,6 @@ class SocialRegisterCompleteAPI(
             ),
             sqlClient
         )
-
-        val registeredUser = databaseManager.userDao.getById(userId, sqlClient)!!
-        val listeners = PluginEventManager.getPanoEventListeners<AuthEventListener>()
-        for (listener in listeners) {
-            listener.onAfterRegister(registeredUser, sqlClient)
-        }
 
         val csrfToken = socialLoginService.loginUser(userId, context, sqlClient)
 

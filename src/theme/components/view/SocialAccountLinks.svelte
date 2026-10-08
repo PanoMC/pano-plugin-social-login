@@ -1,11 +1,11 @@
 <div class="row pt-2 pb-3 mb-3 border-bottom animate__animated animate__fadeIn">
-  <label class="col-md-4 col-form-label pb-2">
+  <div class="col-md-4 col-form-label pb-2">
     <div class="d-flex align-items-center gap-2 mb-2">
       <i class="fas fa-link text-secondary"></i>
       <span class="fw-bold">{$_('account-links.title')}</span>
     </div>
     <p class="text-secondary small mt-1 mb-0">{$_('account-links.desc')}</p>
-  </label>
+  </div>
 
   <div class="col col-form-label">
     {#if enabledProviders.length === 0}
@@ -16,7 +16,7 @@
           {@const meta = PROVIDER_META[key]}
           {@const link = linksByProvider[key]}
           <div class="d-flex align-items-center gap-2">
-            <i class={meta?.icon || 'fas fa-link'} style="color: {meta?.color || 'inherit'};"></i>
+            <ProviderIcon {meta} colored />
             <span class="fw-semibold">{meta?.name || key}</span>
             {#if link}
               <span class="text-success small">
@@ -79,8 +79,9 @@
 </script>
 
 <script>
+  // ApiUtil is declared in the module script above and is in scope here too.
   import { _, PROVIDER_META } from '../../../main.js';
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import ProviderIcon from '../../../components/ProviderIcon.svelte';
 
   let { data } = $props();
 

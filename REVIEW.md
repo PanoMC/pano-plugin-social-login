@@ -26,6 +26,26 @@ alınmalı" olan: hassas uçların **rate-limit tier**'ı. Geri kalanlar küçü
 
 ---
 
+## Güncelleme — uygulanan düzeltmeler (2026-05-20)
+
+Aşağıdaki bulguların tamamı koda işlendi (`./gradlew :plugins:pano-plugin-social-login:compileKotlin` ✅):
+
+1. **Rate-limit** — `process` / `link-existing` / `register` artık platformun **AUTH** bucket'ını
+   yeniden kullanıyor (`SocialLoginService.enforceAuthRateLimit`, `RateLimitManager.Tier.AUTH`).
+   Platform per-endpoint override sunmadığı için fix plugin içinde (handler başında) yapıldı → plugin'le taşınır.
+2. **Kullanıcı silme** — yeni `event/PlayerEventHandler` (`PlayerEventListener.onDelete`) → `deleteByUserId`.
+3. **Atomiklik** — `deleteByToken` artık etkilenen-satır döndürüyor; consume tek-kullanımı bununla garanti;
+   `SocialLoginService.addLinkUnique` DB unique-violation'ı `SocialAccountAlreadyLinked`'e çeviriyor.
+4. **Pending temizliği** — `createPendingRegistration` da `deleteExpired` çağırıyor.
+5. **LicenseGuard** — `LicenseGuard.assert(plugin)` kritik handler'lara serpildi (process, auth-init,
+   link-existing, register, panel-get-config, get-my-links).
+6. **Kozmetik** — `SocialLoginFailed` (ölü) kaldırıldı; boş-string secret artık kayıtlı secret'ı silmiyor.
+
+> Kapsam dışı bırakılanlar (kozmetik, riskli/gereksiz): panel Svelte 4/5 idiom karışıklığı ve
+> `getUsernameFromUserId(...)!!` force-unwrap.
+
+---
+
 ## 1. Mimari ve Akışlar (Flows)
 
 **DB tabloları** (`db/impl/`):

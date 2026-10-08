@@ -1,3 +1,167 @@
 {
-  "hello-world": "Hello world!"
+  "continue-with": "Continue with {provider}",
+  "error": {
+    "generic": "Something went wrong. Please try again.",
+    "connection": "Connection error. Please try again.",
+    "INVALID_FLOW_STATE": "This sign-in link is invalid or has expired. Please start again.",
+    "PROVIDER_NOT_ENABLED": "This sign-in method is currently unavailable.",
+    "SOCIAL_ACCOUNT_ALREADY_LINKED": "This social account is already linked to another user.",
+    "NOT_LOGGED_IN": "You need to be logged in to do that.",
+    "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
+    "NOT_FOUND": "Something went wrong. Please try again.",
+    "LICENSE_REQUIRED": "This sign-in method is currently unavailable.",
+    "access_denied": "Sign-in was cancelled.",
+    "TWO_FACTOR_INVALID_CODE": "Incorrect or expired code. Please try again.",
+    "TWO_FACTOR_REQUIRED": "A two-factor code is required.",
+    "PLUGIN_DENIED_LOGIN": "Verification failed. Please complete the challenge and try again.",
+    "NO_PANEL_ACCESS": "This account has no access to the management panel.",
+    "NO_LINKED_ACCOUNT": "No account is linked to this sign-in method yet. Sign in with your password instead."
+  },
+  "two-factor": {
+    "title": "Two-Factor Authentication",
+    "description": "Enter the code from your authenticator app to finish signing in.",
+    "code-label": "Authentication code",
+    "submit": "Verify",
+    "submitting": "Verifying...",
+    "success": "Verified! Redirecting...",
+    "back-to-login": "Back to Login"
+  },
+  "sidebar": {
+    "title": "Linked Social Accounts",
+    "none": "No social accounts linked."
+  },
+  "panel-edit": {
+    "title": "Linked Social Accounts",
+    "desc": "Social accounts this player can sign in with.",
+    "none": "No social accounts linked.",
+    "unlink-button": "Unlink",
+    "will-unlink": "Will be unlinked",
+    "undo": "Undo"
+  },
+  "account-links": {
+    "title": "Social Accounts",
+    "desc": "Link a social account to sign in faster next time.",
+    "none-enabled": "No social login providers are enabled.",
+    "linked": "Linked",
+    "link": "Link",
+    "unlink": "Unlink"
+  },
+  "profile-sidebar": {
+    "title": "Linked Social Accounts"
+  },
+  "callback": {
+    "loading": "Signing you in...",
+    "login-success": "Signed in successfully!",
+    "link-success": "Account linked successfully!",
+    "redirecting": "Redirecting...",
+    "error": "Social login failed",
+    "back-to-login": "Back to Login",
+    "no-code": "No authorization code received."
+  },
+  "complete": {
+    "loading": "Finishing sign-in...",
+    "subtitle": "Complete any extra verification your account requires.",
+    "invalid-token": "This sign-in link has expired. Please try again from the start."
+  },
+  "register": {
+    "title": "Create Your Account",
+    "via": "via {provider}",
+    "description": "Pick a username and password to finish creating your account.",
+    "username-label": "Username",
+    "email-label": "Email",
+    "password-label": "Password",
+    "password-repeat-label": "Repeat Password",
+    "agreement": "I have read and accept {link}.",
+    "server-rules": "Server Rules",
+    "submit": "Create Account",
+    "submitting": "Creating account...",
+    "success": "Account created! Redirecting...",
+    "back-to-login": "Back to Login",
+    "error": {
+      "REGISTER_USERNAME_NOT_AVAILABLE": "This username is already taken. Please choose another one.",
+      "REGISTER_EMAIL_NOT_AVAILABLE": "An account with this email already exists. Log in instead and link your account from settings.",
+      "REGISTER_USERNAME_EMPTY": "Please enter a username.",
+      "REGISTER_EMAIL_EMPTY": "Please enter an email address.",
+      "REGISTER_USERNAME_TOO_SHORT": "Username must be at least 3 characters.",
+      "REGISTER_USERNAME_TOO_LONG": "Username must be at most 16 characters.",
+      "REGISTER_INVALID_USERNAME": "Username can only contain letters, numbers and underscores.",
+      "REGISTER_INVALID_EMAIL": "Please enter a valid email address.",
+      "REGISTER_PASSWORD_AND_PASSWORD_REPEAT_NOT_SAME": "Passwords do not match.",
+      "REGISTER_NOT_ACCEPTED_AGREEMENT": "You must accept the terms to continue.",
+      "PASSWORD_EMPTY": "Please enter a password.",
+      "PASSWORD_TOO_SHORT": "Password must be at least 6 characters.",
+      "PASSWORD_TOO_LONG": "Password must be at most 128 characters.",
+      "IP_IS_BANNED": "Registration is not allowed from your network.",
+      "INVALID_FLOW_STATE": "This link is invalid or has expired. Please start again from the login page.",
+      "SOCIAL_ACCOUNT_ALREADY_LINKED": "This social account has already been linked to another user."
+    }
+  },
+  "link-existing": {
+    "title": "Account Already Exists",
+    "description": "An account using {email} already exists. Log in to link your social account to it.",
+    "username-label": "Username or Email",
+    "password-label": "Password",
+    "submit": "Log In & Link",
+    "submitting": "Linking...",
+    "success": "Account linked! Redirecting...",
+    "back-to-login": "Back to Login",
+    "error": {
+      "LOGIN_IS_INVALID": "Incorrect username/email or password.",
+      "LOGIN_USER_IS_BANNED": "This account is banned.",
+      "LOGIN_EMAIL_NOT_VERIFIED": "This account's email is not verified yet.",
+      "EMAIL_MISMATCH": "This account does not match the email of your social account.",
+      "INVALID_FLOW_STATE": "This link is invalid or has expired. Please start again from the login page.",
+      "SOCIAL_ACCOUNT_ALREADY_LINKED": "This social account has already been linked to another user."
+    }
+  },
+  "plugin-settings": {
+    "title": "Social Login Settings",
+    "setup-guide-title": "How to set up Social Login",
+    "setup-guide-desc": "Enable a provider, then create an OAuth application in that provider's developer console. Copy the Client ID and Client Secret here, and register the Redirect URI shown below in the provider console.",
+    "redirect-base-url": "Redirect Base URL",
+    "redirect-base-url-desc": "Public origin of your site (e.g. https://example.com). Leave empty to use the platform website URL.",
+    "client-id": "Client ID",
+    "client-secret": "Client Secret",
+    "client-secret-new-placeholder": "Enter new client secret",
+    "reveal-desc": "Enter your password to view the client secret.",
+    "reveal-password-placeholder": "Your password",
+    "reveal-cancel": "Cancel",
+    "reveal-confirm": "Verify",
+    "reveal-error": "Incorrect password.",
+    "redirect-uri": "Redirect URI",
+    "redirect-uri-desc": "Register this exact URI in the provider's developer console.",
+    "guide": {
+      "heading": "Setup guide",
+      "intro": "To enable {provider}, create an OAuth app in its developer console and copy the Client ID & Secret here. Step by step:",
+      "scopes-label": "Required scopes",
+      "open-console": "Open developer console",
+      "open-docs": "Official documentation"
+    },
+    "guide-notes": {
+      "google": "Open the Google Cloud Console and create or select a project.\nGo to 'APIs & Services → OAuth consent screen' and configure it (User type 'External', app name, support email).\nGo to 'APIs & Services → Credentials → Create credentials → OAuth client ID' and pick application type 'Web application'.\nUnder 'Authorized redirect URIs' add the Redirect URI shown below (it must match exactly), then click Create.\nCopy the shown Client ID and Client Secret into the fields above.",
+      "discord": "Open the Discord Developer Portal and click 'New Application'; give it a name.\nOpen the 'OAuth2' tab in the left menu.\nCopy the Client ID and Client Secret from 'OAuth2 → General' into the fields above (use 'Reset Secret' if no secret is shown).\nUnder 'OAuth2 → Redirects' click 'Add Redirect', paste the Redirect URI shown below and save.",
+      "facebook": "Open Meta for Developers → 'My Apps' → 'Create app' and choose a type that includes Facebook Login.\nAdd the 'Facebook Login' product to the app.\nIn 'App settings → Basic' copy the App ID (Client ID) and App Secret (Client Secret) into the fields above.\nIn 'Facebook Login → Settings' add the Redirect URI shown below to 'Valid OAuth Redirect URIs' and save.\nSwitch the app to 'Live' mode so real users (not only testers) can sign in.",
+      "twitter": "Open the X Developer Portal and create a Project, then an App inside it.\nIn the app open 'User authentication settings' and click 'Set up'.\nEnable 'OAuth 2.0', set 'Type of App' to 'Web App' (confidential client) and add the Redirect URI shown below as the Callback URI; fill the website URL and save.\nOpen 'Keys and tokens' and copy the OAuth 2.0 Client ID and Client Secret into the fields above.",
+      "github": "Open GitHub 'Settings → Developer settings → OAuth Apps' and click 'New OAuth App'.\nFill in the application name and homepage URL.\nSet 'Authorization callback URL' to the Redirect URI shown below.\nClick 'Register application', copy the Client ID, then 'Generate a new client secret' and copy it into the fields above.",
+      "twitch": "Open the Twitch Developer Console → 'Applications' → 'Register Your Application'.\nFill in the name and category.\nSet 'OAuth Redirect URLs' to the Redirect URI shown below.\nCreate the app, copy the Client ID, then click 'New Secret' and copy both into the fields above.",
+      "instagram": "Open Meta for Developers → 'Create app' and choose a 'Business' app.\nAdd the 'Instagram' product and pick 'Instagram API with Instagram Login'.\nIn the API setup add the Redirect URI shown below to the OAuth redirect URIs.\nCopy the Instagram app ID (Client ID) and Instagram app secret (Client Secret) into the fields above.\nAdd Instagram testers (or submit for App Review) — only added testers can sign in until the app is approved."
+    },
+    "debug-logging": "Debug Logging",
+    "debug-logging-desc": "Log detailed step-by-step information during OAuth flows. Useful for troubleshooting.",
+    "save": "Save"
+  },
+  "permissions": {
+    "MANAGE_SOCIAL_LOGIN_SETTINGS": {
+      "title": "Manage Social Login Settings",
+      "description": "Can configure social login providers and their OAuth credentials."
+    },
+    "MANAGE_SOCIAL_LINKS": {
+      "title": "Manage Social Links",
+      "description": "Can view and unlink players' linked social accounts from the player detail page."
+    }
+  },
+  "activity-logs": {
+    "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> updated the Social Login plugin settings.",
+    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b> unlinked the <b>{provider}</b> account of player <b>{targetUsername}</b>."
+  }
 }

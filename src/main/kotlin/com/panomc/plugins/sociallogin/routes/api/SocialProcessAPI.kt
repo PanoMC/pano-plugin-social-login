@@ -7,6 +7,7 @@ import com.panomc.platform.error.NotFound
 import com.panomc.platform.error.NotLoggedIn
 import com.panomc.platform.model.*
 import com.panomc.platform.util.TextUtil
+import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -71,6 +72,9 @@ class SocialProcessAPI(
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
+        socialLoginService.enforceAuthRateLimit(context)
+        LicenseGuard.assert(plugin)
+
         val body = context.body().asJsonObject()
         val providerKey = body.getString("provider")
         val code = body.getString("code")
@@ -130,7 +134,7 @@ class SocialProcessAPI(
 
         // Replace any previous link for this provider on this account with the just-authorized one.
         socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, sqlClient)
-        socialLoginLinkDao.add(
+        socialLoginService.addLinkUnique(
             SocialLoginLink(
                 userId = userId,
                 provider = provider.key,
@@ -154,8 +158,28 @@ class SocialProcessAPI(
         val existing =
             socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, profile.providerUserId, sqlClient)
 
-        // Linked account → straight login.
+        // Linked account → run the core pre-login hooks before issuing a session.
         if (existing != null) {
+            val user = databaseManager.userDao.getById(existing.userId, sqlClient) ?: throw NotFound()
+            val deny = socialLoginService.runOnBeforeLogin(user, context, sqlClient)
+            if (deny != null) {
+                // ANY deny (2FA, future step-ups, …) escalates to the platform's pending-session
+                // mechanism. social-login stays agnostic of what the challenge is: the theme's
+                // login form + installed login-content plugins drive the UI, and
+                // POST /api/auth/complete-pending re-runs the same hooks with the user's input.
+                val pendingToken = authProvider.createPendingSession(
+                    user.id,
+                    "social-login:${provider.key}",
+                    sqlClient
+                )
+                return Successful(
+                    mapOf(
+                        "action" to "complete-required",
+                        "pendingToken" to pendingToken,
+                        "provider" to provider.key
+                    )
+                )
+            }
             val csrfToken = socialLoginService.loginUser(existing.userId, context, sqlClient)
             return Successful(
                 mapOf("action" to "login", "csrfToken" to csrfToken, "provider" to provider.key)

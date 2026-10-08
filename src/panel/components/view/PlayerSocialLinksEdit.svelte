@@ -17,7 +17,7 @@
         {@const meta = PROVIDER_META[link.provider]}
         {@const willUnlink = pendingUnlinks.includes(link.provider)}
         <div class="d-flex align-items-center gap-2">
-          <i class="{meta?.icon || 'fas fa-link'}" style="color: {meta?.color || 'inherit'};"></i>
+          <ProviderIcon {meta} colored />
           <span class="fw-semibold">{meta?.name || link.provider}</span>
           {#if link.displayName}
             <span class="text-muted small text-truncate">{link.displayName}</span>
@@ -49,6 +49,7 @@
 
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
+  import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import ApiUtil from '@panomc/sdk/utils/api';
 
   export let playerData;

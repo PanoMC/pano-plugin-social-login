@@ -19,7 +19,7 @@ abstract class OAuthProvider(
 ) {
     abstract val provider: SocialProvider
 
-    /** Twitter/X requires PKCE; the others use the classic confidential-client flow. */
+    /** X (formerly Twitter) requires PKCE; the others use the classic confidential-client flow. */
     open val usesPkce: Boolean = false
 
     protected val webClient: WebClient by lazy {

@@ -3,6 +3,7 @@ package com.panomc.plugins.sociallogin.routes.api
 import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.model.*
+import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.error.ProviderNotEnabled
@@ -40,6 +41,8 @@ class SocialAuthInitAPI(
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
+        LicenseGuard.assert(plugin)
+
         val providerKey = getParameters(context).pathParameter("provider").string
         val provider = SocialProvider.fromKey(providerKey) ?: throw NotFound()
 

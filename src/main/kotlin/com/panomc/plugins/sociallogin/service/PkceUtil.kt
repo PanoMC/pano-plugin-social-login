@@ -5,7 +5,7 @@ import java.security.SecureRandom
 import java.util.Base64
 
 /**
- * PKCE (RFC 7636) helpers. Required by Twitter/X OAuth 2.0; the verifier is created at
+ * PKCE (RFC 7636) helpers. Required by X (formerly Twitter) OAuth 2.0; the verifier is created at
  * authorization-init time, stored server-side in the OAuth state row, and replayed during
  * the token exchange.
  */

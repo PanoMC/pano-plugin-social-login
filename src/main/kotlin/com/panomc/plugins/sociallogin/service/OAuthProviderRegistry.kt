@@ -18,7 +18,10 @@ class OAuthProviderRegistry(
         SocialProvider.GOOGLE to GoogleOAuthService(configManager, vertx),
         SocialProvider.DISCORD to DiscordOAuthService(configManager, vertx),
         SocialProvider.FACEBOOK to FacebookOAuthService(configManager, vertx),
-        SocialProvider.TWITTER to TwitterOAuthService(configManager, vertx)
+        SocialProvider.TWITTER to TwitterOAuthService(configManager, vertx),
+        SocialProvider.GITHUB to GitHubOAuthService(configManager, vertx),
+        SocialProvider.TWITCH to TwitchOAuthService(configManager, vertx),
+        SocialProvider.INSTAGRAM to InstagramOAuthService(configManager, vertx)
     )
 
     fun get(provider: SocialProvider): OAuthProvider = providers.getValue(provider)

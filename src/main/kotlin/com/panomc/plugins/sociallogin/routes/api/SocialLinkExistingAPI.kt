@@ -2,9 +2,12 @@ package com.panomc.plugins.sociallogin.routes.api
 
 import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.auth.AuthProvider
+import com.panomc.platform.api.event.AuthEventListener
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.error.LoginIsInvalid
+import com.panomc.platform.error.PluginDeniedLogin
 import com.panomc.platform.model.*
+import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -60,12 +63,22 @@ class SocialLinkExistingAPI(
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
+        socialLoginService.enforceAuthRateLimit(context)
+        LicenseGuard.assert(plugin)
+
         val body = context.body().asJsonObject()
         val pendingToken = body.getString("pendingToken")
         val usernameOrEmail = body.getString("usernameOrEmail")
         val password = body.getString("password")
 
         val sqlClient = getSqlClient()
+
+        // Run the core pre-auth hooks (e.g. captcha) before consuming the pending token or checking
+        // the password — this is a password "login" phase.
+        context.put("pano-auth-phase", "login")
+        (authProvider.runOnBeforeAuthenticate(context, sqlClient) as? AuthEventListener.LoginDecision.Deny)?.let {
+            throw PluginDeniedLogin(it.errorKey, it.extras)
+        }
 
         val payload = socialLoginService.consumePendingRegistration(pendingToken, sqlClient)
             ?: throw InvalidFlowState()
@@ -102,7 +115,7 @@ class SocialLinkExistingAPI(
         }
 
         socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, sqlClient)
-        socialLoginLinkDao.add(
+        socialLoginService.addLinkUnique(
             SocialLoginLink(
                 userId = userId,
                 provider = provider.key,
@@ -113,6 +126,28 @@ class SocialLinkExistingAPI(
             ),
             sqlClient
         )
+
+        // Step-up auth hooks: 2FA must still gate the session even though the password matched.
+        // Symmetric to SocialProcessAPI — any Deny escalates to the platform's pending-session flow
+        // so social-login stays agnostic of the challenge. The link is already persisted (the user
+        // proved password ownership); the user can complete or abandon — abandoning leaves them
+        // linked but unauthenticated, which they can resolve via a normal /login attempt.
+        val user = databaseManager.userDao.getById(userId, sqlClient) ?: throw LoginIsInvalid()
+        val deny = socialLoginService.runOnBeforeLogin(user, context, sqlClient)
+        if (deny != null) {
+            val pendingToken = authProvider.createPendingSession(
+                userId,
+                "social-login:${provider.key}",
+                sqlClient
+            )
+            return Successful(
+                mapOf(
+                    "action" to "complete-required",
+                    "pendingToken" to pendingToken,
+                    "provider" to provider.key
+                )
+            )
+        }
 
         val csrfToken = socialLoginService.loginUser(userId, context, sqlClient)
 

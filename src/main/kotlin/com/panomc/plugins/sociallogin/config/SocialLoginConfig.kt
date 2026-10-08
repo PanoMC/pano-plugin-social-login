@@ -30,6 +30,18 @@ class SocialLoginConfig(
     val twitterClientId: String = "",
     val twitterClientSecret: String = "",
 
+    val githubEnabled: Boolean = false,
+    val githubClientId: String = "",
+    val githubClientSecret: String = "",
+
+    val twitchEnabled: Boolean = false,
+    val twitchClientId: String = "",
+    val twitchClientSecret: String = "",
+
+    val instagramEnabled: Boolean = false,
+    val instagramClientId: String = "",
+    val instagramClientSecret: String = "",
+
     version: Int = 1
 ) : PluginConfig(version) {
     fun isEnabled(provider: SocialProvider): Boolean = when (provider) {
@@ -37,6 +49,9 @@ class SocialLoginConfig(
         SocialProvider.DISCORD -> discordEnabled
         SocialProvider.FACEBOOK -> facebookEnabled
         SocialProvider.TWITTER -> twitterEnabled
+        SocialProvider.GITHUB -> githubEnabled
+        SocialProvider.TWITCH -> twitchEnabled
+        SocialProvider.INSTAGRAM -> instagramEnabled
     }
 
     fun clientId(provider: SocialProvider): String = when (provider) {
@@ -44,6 +59,9 @@ class SocialLoginConfig(
         SocialProvider.DISCORD -> discordClientId
         SocialProvider.FACEBOOK -> facebookClientId
         SocialProvider.TWITTER -> twitterClientId
+        SocialProvider.GITHUB -> githubClientId
+        SocialProvider.TWITCH -> twitchClientId
+        SocialProvider.INSTAGRAM -> instagramClientId
     }
 
     fun clientSecret(provider: SocialProvider): String = when (provider) {
@@ -51,5 +69,8 @@ class SocialLoginConfig(
         SocialProvider.DISCORD -> discordClientSecret
         SocialProvider.FACEBOOK -> facebookClientSecret
         SocialProvider.TWITTER -> twitterClientSecret
+        SocialProvider.GITHUB -> githubClientSecret
+        SocialProvider.TWITCH -> twitchClientSecret
+        SocialProvider.INSTAGRAM -> instagramClientSecret
     }
 }

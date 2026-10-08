@@ -11,7 +11,7 @@
           <span
             class="badge d-inline-flex align-items-center gap-1"
             style="background-color: {meta?.color || '#555'};">
-            <i class={meta?.icon || 'fas fa-link'}></i>
+            <ProviderIcon {meta} />
             {meta?.name || link.provider}
           </span>
         {/each}
@@ -48,6 +48,7 @@
 
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
+  import ProviderIcon from '../../../components/ProviderIcon.svelte';
 
   let { data } = $props();
 

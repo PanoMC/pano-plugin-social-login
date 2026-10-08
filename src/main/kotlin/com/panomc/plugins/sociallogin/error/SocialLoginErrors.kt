@@ -5,8 +5,8 @@ import com.panomc.platform.model.Error
 /** The requested provider is not enabled in the plugin settings. */
 class ProviderNotEnabled : Error()
 
-/** The OAuth exchange with the provider failed (network error, denied consent, bad credentials). */
-class SocialLoginFailed : Error()
+/** The admin's re-authentication password (for revealing a stored client secret) was wrong. */
+class InvalidPassword : Error(403)
 
 /** This social account is already linked to a different Pano user. */
 class SocialAccountAlreadyLinked : Error()

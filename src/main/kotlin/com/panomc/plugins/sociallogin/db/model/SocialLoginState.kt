@@ -10,6 +10,10 @@ import com.panomc.platform.db.DBEntity
  *  - PENDING_REGISTRATION: `{ provider, providerUserId, email, emailVerified, displayName, avatarUrl }`
  *    — the verified social profile awaiting a username/password registration form submission.
  *
+ * Step-up auth (2FA, …) does NOT live here — it goes through the platform's generic
+ * `pending_auth_session` table, written via `AuthProvider.createPendingSession` and consumed by
+ * `POST /api/auth/complete-pending`. social-login stays agnostic of any specific challenge.
+ *
  * Rows are one-time-use (deleted on consumption) and pruned when [expiresAt] passes.
  */
 open class SocialLoginState(

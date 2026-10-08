@@ -1,3 +1,162 @@
 {
-  "hello-world": "Merhaba dünya!"
+  "continue-with": "{provider} ile devam et",
+  "error": {
+    "generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "connection": "Bağlantı hatası. Lütfen tekrar deneyin.",
+    "INVALID_FLOW_STATE": "Bu giriş bağlantısı geçersiz veya süresi dolmuş. Lütfen baştan başlayın.",
+    "PROVIDER_NOT_ENABLED": "Bu giriş yöntemi şu anda kullanılamıyor.",
+    "SOCIAL_ACCOUNT_ALREADY_LINKED": "Bu sosyal hesap zaten başka bir kullanıcıya bağlı.",
+    "NOT_LOGGED_IN": "Bunu yapmak için giriş yapmış olmanız gerekir.",
+    "RATE_LIMITED": "Çok fazla deneme. Lütfen biraz bekleyip tekrar deneyin.",
+    "NOT_FOUND": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "LICENSE_REQUIRED": "Bu giriş yöntemi şu anda kullanılamıyor.",
+    "access_denied": "Giriş iptal edildi.",
+    "TWO_FACTOR_INVALID_CODE": "Kod hatalı veya süresi dolmuş. Lütfen tekrar deneyin.",
+    "TWO_FACTOR_REQUIRED": "İki adımlı doğrulama kodu gerekli.",
+    "PLUGIN_DENIED_LOGIN": "Doğrulama başarısız. Lütfen doğrulamayı tamamlayıp tekrar deneyin.",
+    "NO_PANEL_ACCESS": "Bu hesabın yönetim paneline erişimi yok.",
+    "NO_LINKED_ACCOUNT": "Bu giriş yöntemine bağlı bir hesap yok. Bunun yerine şifrenle giriş yap."
+  },
+  "two-factor": {
+    "title": "İki Adımlı Doğrulama",
+    "description": "Girişi tamamlamak için doğrulayıcı uygulamandaki kodu gir.",
+    "code-label": "Doğrulama kodu",
+    "submit": "Doğrula",
+    "submitting": "Doğrulanıyor...",
+    "success": "Doğrulandı! Yönlendiriliyor...",
+    "back-to-login": "Girişe dön"
+  },
+  "sidebar": {
+    "title": "Bağlı Sosyal Hesaplar",
+    "none": "Bağlı sosyal hesap yok."
+  },
+  "panel-edit": {
+    "title": "Bağlı Sosyal Hesaplar",
+    "desc": "Bu oyuncunun giriş yapabileceği sosyal hesaplar.",
+    "none": "Bağlı sosyal hesap yok.",
+    "unlink-button": "Bağlantıyı Kes",
+    "will-unlink": "Bağlantı kesilecek",
+    "undo": "Geri Al"
+  },
+  "account-links": {
+    "title": "Sosyal Hesaplar",
+    "desc": "Bir dahaki sefere daha hızlı giriş yapmak için bir sosyal hesap bağlayın.",
+    "none-enabled": "Etkin bir sosyal giriş sağlayıcısı yok.",
+    "linked": "Bağlı",
+    "link": "Bağla",
+    "unlink": "Bağlantıyı Kes"
+  },
+  "profile-sidebar": {
+    "title": "Bağlı Sosyal Hesaplar"
+  },
+  "callback": {
+    "loading": "Giriş yapılıyor...",
+    "login-success": "Başarıyla giriş yapıldı!",
+    "link-success": "Hesap başarıyla bağlandı!",
+    "redirecting": "Yönlendiriliyorsunuz...",
+    "error": "Sosyal giriş başarısız oldu",
+    "back-to-login": "Giriş Sayfasına Dön",
+    "no-code": "Yetkilendirme kodu alınamadı."
+  },
+  "register": {
+    "title": "Hesabını Oluştur",
+    "via": "{provider} ile",
+    "description": "Hesabını oluşturmayı tamamlamak için bir kullanıcı adı ve şifre belirle.",
+    "username-label": "Kullanıcı Adı",
+    "email-label": "E-posta",
+    "password-label": "Şifre",
+    "password-repeat-label": "Şifre Tekrarı",
+    "agreement": "{link} okudum ve kabul ediyorum.",
+    "server-rules": "Sunucu Kurallarını",
+    "submit": "Hesap Oluştur",
+    "submitting": "Hesap oluşturuluyor...",
+    "success": "Hesap oluşturuldu! Yönlendiriliyorsunuz...",
+    "back-to-login": "Giriş Sayfasına Dön",
+    "error": {
+      "REGISTER_USERNAME_NOT_AVAILABLE": "Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir ad seçin.",
+      "REGISTER_EMAIL_NOT_AVAILABLE": "Bu e-posta ile zaten bir hesap var. Bunun yerine giriş yapıp hesabınızı ayarlardan bağlayın.",
+      "REGISTER_USERNAME_EMPTY": "Lütfen bir kullanıcı adı girin.",
+      "REGISTER_EMAIL_EMPTY": "Lütfen bir e-posta adresi girin.",
+      "REGISTER_USERNAME_TOO_SHORT": "Kullanıcı adı en az 3 karakter olmalıdır.",
+      "REGISTER_USERNAME_TOO_LONG": "Kullanıcı adı en fazla 16 karakter olmalıdır.",
+      "REGISTER_INVALID_USERNAME": "Kullanıcı adı yalnızca harf, rakam ve alt çizgi içerebilir.",
+      "REGISTER_INVALID_EMAIL": "Lütfen geçerli bir e-posta adresi girin.",
+      "REGISTER_PASSWORD_AND_PASSWORD_REPEAT_NOT_SAME": "Şifreler eşleşmiyor.",
+      "REGISTER_NOT_ACCEPTED_AGREEMENT": "Devam etmek için şartları kabul etmelisiniz.",
+      "PASSWORD_EMPTY": "Lütfen bir şifre girin.",
+      "PASSWORD_TOO_SHORT": "Şifre en az 6 karakter olmalıdır.",
+      "PASSWORD_TOO_LONG": "Şifre en fazla 128 karakter olmalıdır.",
+      "IP_IS_BANNED": "Ağınızdan kayıt yapılmasına izin verilmiyor.",
+      "INVALID_FLOW_STATE": "Bu bağlantı geçersiz veya süresi dolmuş. Lütfen giriş sayfasından yeniden başlayın.",
+      "SOCIAL_ACCOUNT_ALREADY_LINKED": "Bu sosyal hesap zaten başka bir kullanıcıya bağlanmış."
+    }
+  },
+  "link-existing": {
+    "title": "Hesap Zaten Mevcut",
+    "description": "{email} adresini kullanan bir hesap zaten var. Sosyal hesabınızı bağlamak için giriş yapın.",
+    "username-label": "Kullanıcı Adı veya E-posta",
+    "password-label": "Şifre",
+    "submit": "Giriş Yap ve Bağla",
+    "submitting": "Bağlanıyor...",
+    "success": "Hesap bağlandı! Yönlendiriliyorsunuz...",
+    "back-to-login": "Giriş Sayfasına Dön",
+    "error": {
+      "LOGIN_IS_INVALID": "Kullanıcı adı/e-posta veya şifre hatalı.",
+      "LOGIN_USER_IS_BANNED": "Bu hesap yasaklanmış.",
+      "LOGIN_EMAIL_NOT_VERIFIED": "Bu hesabın e-postası henüz doğrulanmamış.",
+      "EMAIL_MISMATCH": "Bu hesap, sosyal hesabınızın e-postasıyla eşleşmiyor.",
+      "INVALID_FLOW_STATE": "Bu bağlantı geçersiz veya süresi dolmuş. Lütfen giriş sayfasından yeniden başlayın.",
+      "SOCIAL_ACCOUNT_ALREADY_LINKED": "Bu sosyal hesap zaten başka bir kullanıcıya bağlanmış."
+    }
+  },
+  "plugin-settings": {
+    "title": "Sosyal Giriş Ayarları",
+    "setup-guide-title": "Sosyal Giriş nasıl kurulur",
+    "setup-guide-desc": "Bir sağlayıcıyı etkinleştirin, ardından o sağlayıcının geliştirici konsolunda bir OAuth uygulaması oluşturun. Client ID ve Client Secret değerlerini buraya kopyalayın ve aşağıda gösterilen Yönlendirme URI'sini sağlayıcı konsolunda kaydedin.",
+    "redirect-base-url": "Yönlendirme Temel URL'si",
+    "redirect-base-url-desc": "Sitenizin genel adresi (örn. https://example.com). Platform site URL'sini kullanmak için boş bırakın.",
+    "client-id": "İstemci Kimliği (Client ID)",
+    "client-secret": "İstemci Gizli Anahtarı (Client Secret)",
+    "client-secret-new-placeholder": "Yeni gizli anahtar girin",
+    "reveal-desc": "İstemci gizli anahtarını görüntülemek için parolanızı girin.",
+    "reveal-password-placeholder": "Parolanız",
+    "reveal-cancel": "İptal",
+    "reveal-confirm": "Doğrula",
+    "reveal-error": "Parola yanlış.",
+    "redirect-uri": "Yönlendirme URI'si",
+    "redirect-uri-desc": "Bu URI'yi sağlayıcının geliştirici konsoluna birebir kaydedin.",
+    "guide": {
+      "heading": "Kurulum rehberi",
+      "intro": "{provider} sağlayıcısını etkinleştirmek için geliştirici konsolunda bir OAuth uygulaması oluşturup Client ID ve Secret değerlerini buraya kopyalayın. Adım adım:",
+      "scopes-label": "Gerekli izinler (scope)",
+      "open-console": "Geliştirici konsolunu aç",
+      "open-docs": "Resmi dokümantasyon"
+    },
+    "guide-notes": {
+      "google": "Google Cloud Console'u açın ve bir proje oluşturun veya seçin.\n'APIs & Services → OAuth consent screen' bölümünü yapılandırın (User type 'External', uygulama adı, destek e-postası).\n'APIs & Services → Credentials → Create credentials → OAuth client ID' yolunu izleyip uygulama türü 'Web application' seçin.\n'Authorized redirect URIs' altına aşağıda gösterilen Yönlendirme URI'sini ekleyin (birebir aynı olmalı) ve Create deyin.\nGörünen Client ID ve Client Secret değerlerini yukarıdaki alanlara kopyalayın.",
+      "discord": "Discord Developer Portal'ı açıp 'New Application' ile bir uygulama oluşturun ve ad verin.\nSol menüden 'OAuth2' sekmesini açın.\nClient ID ve Client Secret değerlerini 'OAuth2 → General' altından yukarıdaki alanlara kopyalayın (secret görünmüyorsa 'Reset Secret' kullanın).\n'OAuth2 → Redirects' altında 'Add Redirect' deyip aşağıda gösterilen Yönlendirme URI'sini yapıştırın ve kaydedin.",
+      "facebook": "Meta for Developers → 'My Apps' → 'Create app' açın ve Facebook Login içeren bir tür seçin.\nUygulamaya 'Facebook Login' ürününü ekleyin.\n'App settings → Basic' altından App ID (Client ID) ve App Secret (Client Secret) değerlerini yukarıdaki alanlara kopyalayın.\n'Facebook Login → Settings' altında aşağıda gösterilen Yönlendirme URI'sini 'Valid OAuth Redirect URIs' alanına ekleyip kaydedin.\nGerçek kullanıcıların (yalnızca test edenlerin değil) giriş yapabilmesi için uygulamayı 'Live' moduna alın.",
+      "twitter": "X Developer Portal'ı açıp bir Project, ardından içinde bir App oluşturun.\nUygulamada 'User authentication settings' bölümünü açıp 'Set up' deyin.\n'OAuth 2.0'ı etkinleştirin, 'Type of App' olarak 'Web App' (gizli istemci) seçin ve aşağıda gösterilen Yönlendirme URI'sini Callback URI olarak ekleyin; web sitesi adresini girip kaydedin.\n'Keys and tokens' bölümünden OAuth 2.0 Client ID ve Client Secret değerlerini yukarıdaki alanlara kopyalayın.",
+      "github": "GitHub 'Settings → Developer settings → OAuth Apps' açıp 'New OAuth App' deyin.\nUygulama adını ve homepage URL'sini girin.\n'Authorization callback URL' alanını aşağıda gösterilen Yönlendirme URI'si yapın.\n'Register application' deyin, Client ID'yi kopyalayın, ardından 'Generate a new client secret' ile secret oluşturup yukarıdaki alanlara kopyalayın.",
+      "twitch": "Twitch Developer Console → 'Applications' → 'Register Your Application' açın.\nAd ve kategori girin.\n'OAuth Redirect URLs' alanını aşağıda gösterilen Yönlendirme URI'si yapın.\nUygulamayı oluşturun, Client ID'yi kopyalayın, 'New Secret' ile secret üretip ikisini yukarıdaki alanlara kopyalayın.",
+      "instagram": "Meta for Developers → 'Create app' açıp 'Business' türünde bir uygulama seçin.\n'Instagram' ürününü ekleyip 'Instagram API with Instagram Login' seçeneğini seçin.\nAPI kurulumunda aşağıda gösterilen Yönlendirme URI'sini OAuth redirect URI listesine ekleyin.\nInstagram app ID (Client ID) ve Instagram app secret (Client Secret) değerlerini yukarıdaki alanlara kopyalayın.\nInstagram test kullanıcıları ekleyin (veya App Review'a gönderin) — uygulama onaylanana kadar yalnızca eklenen testçiler giriş yapabilir."
+    },
+    "debug-logging": "Hata Ayıklama Logları",
+    "debug-logging-desc": "OAuth işlemlerinde adım adım detaylı log bilgisi yazar. Sorun giderme için kullanışlıdır.",
+    "save": "Kaydet"
+  },
+  "permissions": {
+    "MANAGE_SOCIAL_LOGIN_SETTINGS": {
+      "title": "Sosyal Giriş Ayarlarını Yönet",
+      "description": "Sosyal giriş sağlayıcılarını ve OAuth kimlik bilgilerini yapılandırabilir."
+    },
+    "MANAGE_SOCIAL_LINKS": {
+      "title": "Sosyal Bağlantıları Yönet",
+      "description": "Oyuncu detay sayfasından oyuncuların bağlı sosyal hesaplarını görüntüleyebilir ve bağlantılarını kesebilir."
+    }
+  },
+  "activity-logs": {
+    "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> Sosyal Giriş eklenti ayarlarını güncelledi.",
+    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b>, <b>{targetUsername}</b> oyuncusunun <b>{provider}</b> hesabının bağlantısını kesti."
+  }
 }

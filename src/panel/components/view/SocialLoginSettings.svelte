@@ -35,19 +35,62 @@
         {#if provider}
           <div class="border rounded p-3 mb-3">
             <div class="d-flex align-items-center gap-2 mb-1">
-              <i class="{meta?.icon || 'fas fa-link'}" style="color: {meta?.color || 'inherit'};"></i>
+              <ProviderIcon {meta} colored />
               <span class="fw-bold">{provider.displayName}</span>
               <div class="form-check form-switch ms-auto mb-0">
                 <input
                   class="form-check-input"
                   type="checkbox"
                   id="{key}Enabled"
-                  bind:checked={provider.enabled} />
+                  bind:checked={form.providers[key].enabled} />
               </div>
             </div>
 
             {#if provider.enabled}
               <div class="animate__animated animate__fadeIn mt-3">
+                <!-- Per-provider setup guide -->
+                <div class="alert alert-secondary small mb-3">
+                  <div class="fw-bold mb-2">
+                    <i class="fas fa-book me-1"></i>{$_('plugin-settings.guide.heading')}
+                  </div>
+                  <div class="mb-1">
+                    {$_('plugin-settings.guide.intro', { values: { provider: provider.displayName } })}
+                  </div>
+                  <ol class="mb-2 ps-3">
+                    {#each $_(`plugin-settings.guide-notes.${key}`).split('\n') as step, i (i)}
+                      <li>{step}</li>
+                    {/each}
+                  </ol>
+                  {#if meta?.scopes}
+                    <div class="mb-2">
+                      <span class="fw-semibold">{$_('plugin-settings.guide.scopes-label')}:</span>
+                      <code>{meta.scopes}</code>
+                    </div>
+                  {/if}
+                  <div class="d-flex flex-wrap gap-2">
+                    {#if meta?.consoleUrl}
+                      <a
+                        class="btn btn-sm btn-outline-primary"
+                        href={meta.consoleUrl}
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        <i class="fas fa-arrow-up-right-from-square me-1"></i>{$_(
+                          'plugin-settings.guide.open-console',
+                        )}
+                      </a>
+                    {/if}
+                    {#if meta?.docsUrl}
+                      <a
+                        class="btn btn-sm btn-outline-secondary"
+                        href={meta.docsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        <i class="fas fa-book me-1"></i>{$_('plugin-settings.guide.open-docs')}
+                      </a>
+                    {/if}
+                  </div>
+                </div>
+
                 <!-- Client ID -->
                 <div class="row mb-2">
                   <label class="col-md-4 col-form-label" for="{key}ClientId">
@@ -58,7 +101,7 @@
                       type="text"
                       class="form-control"
                       id="{key}ClientId"
-                      bind:value={provider.clientId} />
+                      bind:value={form.providers[key].clientId} />
                   </div>
                 </div>
 
@@ -68,9 +111,17 @@
                     {$_('plugin-settings.client-secret')}
                   </label>
                   <div class="col-md-8">
-                    {#if provider.hasSecret && !provider.secretTouched}
+                    {#if provider.hasSecret && !provider.revealed && !provider.secretTouched}
+                      <!-- Secret is saved but not revealed -->
                       <div class="d-flex align-items-center gap-2">
                         <input type="password" class="form-control" value="••••••••••••" disabled />
+                        <button
+                          class="btn btn-outline-secondary btn-sm"
+                          type="button"
+                          aria-label="Reveal secret"
+                          on:click={() => openRevealModal(key)}>
+                          <i class="fas fa-eye"></i>
+                        </button>
                         <button
                           class="btn btn-outline-primary btn-sm"
                           type="button"
@@ -80,15 +131,24 @@
                         </button>
                       </div>
                     {:else}
+                      <!-- Revealed, or entering a new secret -->
                       <div class="input-group">
                         <input
-                          type="password"
+                          type={provider.showSecret ? 'text' : 'password'}
                           class="form-control"
                           id="{key}ClientSecret"
                           placeholder={provider.hasSecret
                             ? $_('plugin-settings.client-secret-new-placeholder')
                             : ''}
-                          bind:value={provider.clientSecret} />
+                          bind:value={form.providers[key].clientSecret}
+                          on:input={() => markSecretTouched(key)} />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          aria-label="Toggle secret visibility"
+                          on:click={() => toggleShowSecret(key)}>
+                          <i class="fas {provider.showSecret ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                        </button>
                         {#if provider.hasSecret}
                           <button
                             class="btn btn-outline-danger"
@@ -135,6 +195,50 @@
         {/if}
       {/each}
 
+      <!-- Reveal secret modal (password-gated) -->
+      <div aria-hidden="true" class="modal fade" bind:this={revealModalElement} role="dialog" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered" role="dialog">
+          <div class="modal-content">
+            <form on:submit|preventDefault={revealSecret}>
+              <div class="modal-body text-center">
+                <div class="pb-3">
+                  <i class="fas fa-lock fa-3x d-block m-auto text-warning"></i>
+                </div>
+                {$_('plugin-settings.reveal-desc')}
+                <input
+                  class="form-control mt-3"
+                  placeholder={$_('plugin-settings.reveal-password-placeholder')}
+                  type="password"
+                  bind:value={revealPassword}
+                  bind:this={revealPasswordInput}
+                  class:border-danger={revealError} />
+                {#if revealError}
+                  <small class="text-danger d-block mt-2">{$_('plugin-settings.reveal-error')}</small>
+                {/if}
+              </div>
+              <div class="modal-footer flex-nowrap">
+                <button
+                  class="btn btn-link col-6 m-0"
+                  type="button"
+                  on:click={closeRevealModal}
+                  disabled={revealLoading}>
+                  {$_('plugin-settings.reveal-cancel')}
+                </button>
+                <button
+                  class="btn btn-warning col-6 m-0"
+                  type="submit"
+                  disabled={!revealPassword || revealLoading}>
+                  {$_('plugin-settings.reveal-confirm')}
+                  {#if revealLoading}
+                    <i class="fas fa-sync fa-spin ms-2"></i>
+                  {/if}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
       <!-- Debug logging -->
       <div class="row mb-3">
         <label class="col-md-6 col-form-label" for="debugLogging">
@@ -166,12 +270,13 @@
 
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
+  import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import ApiUtil from '@panomc/sdk/utils/api';
   import { showToast } from '@panomc/sdk/toasts';
 
   export let addon;
 
-  const providerKeys = ['google', 'discord', 'facebook', 'twitter'];
+  const providerKeys = ['google', 'discord', 'facebook', 'twitter', 'github', 'twitch', 'instagram'];
   const originPlaceholder = typeof window !== 'undefined' ? window.location.origin : '';
 
   function buildForm() {
@@ -185,6 +290,8 @@
         clientSecret: '',
         hasSecret: !!p.hasSecret,
         secretTouched: false,
+        revealed: false,
+        showSecret: false,
         redirectUri: p.redirectUri || '',
       };
     });
@@ -215,14 +322,89 @@
 
   function editSecret(key) {
     form.providers[key].secretTouched = true;
+    form.providers[key].revealed = false;
+    form.providers[key].showSecret = false;
     form.providers[key].clientSecret = '';
     form = form;
   }
 
   function cancelEditSecret(key) {
     form.providers[key].secretTouched = false;
+    form.providers[key].revealed = false;
+    form.providers[key].showSecret = false;
     form.providers[key].clientSecret = '';
     form = form;
+  }
+
+  function toggleShowSecret(key) {
+    form.providers[key].showSecret = !form.providers[key].showSecret;
+    form = form;
+  }
+
+  function markSecretTouched(key) {
+    if (!form.providers[key].secretTouched) {
+      form.providers[key].secretTouched = true;
+      form = form;
+    }
+  }
+
+  // --- Reveal a saved client secret (password-gated, mirrors pano-plugin-premium-login) ---
+  let revealKey = null;
+  let revealModalElement;
+  let revealModal;
+  let revealPasswordInput;
+  let revealPassword = '';
+  let revealError = false;
+  let revealLoading = false;
+
+  function openRevealModal(key) {
+    revealKey = key;
+    revealModal = new window.bootstrap.Modal(revealModalElement, { backdrop: 'static', keyboard: false });
+    revealLoading = false;
+    revealError = false;
+    revealPassword = '';
+    revealModal.show();
+    setTimeout(() => {
+      if (revealPasswordInput) revealPasswordInput.focus();
+    }, 500);
+  }
+
+  function closeRevealModal() {
+    if (revealModal) revealModal.hide();
+    revealPassword = '';
+    revealError = false;
+  }
+
+  async function revealSecret() {
+    if (!revealPassword || revealLoading || !revealKey) return;
+    revealLoading = true;
+    revealError = false;
+    try {
+      const res = await ApiUtil.post({
+        path: '/api/panel/social-login/config/reveal-secret',
+        body: { provider: revealKey, password: revealPassword },
+      });
+
+      if (res.error) {
+        revealError = true;
+        revealLoading = false;
+        return;
+      }
+
+      const p = form.providers[revealKey];
+      if (p) {
+        p.clientSecret = res.clientSecret || '';
+        p.revealed = true;
+        p.showSecret = true;
+      }
+      form = form;
+      closeRevealModal();
+    } catch (e) {
+      console.error('[pano-plugin-social-login] Failed to reveal secret', e);
+      revealError = true;
+    } finally {
+      revealLoading = false;
+    }
   }
 
   async function copyToClipboard(text) {
@@ -259,6 +441,8 @@
         if (provider && provider.secretTouched && provider.clientSecret) {
           provider.hasSecret = true;
           provider.secretTouched = false;
+          provider.revealed = false;
+          provider.showSecret = false;
           provider.clientSecret = '';
         }
       }

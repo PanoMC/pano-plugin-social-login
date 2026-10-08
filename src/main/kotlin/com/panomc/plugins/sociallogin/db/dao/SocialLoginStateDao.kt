@@ -9,7 +9,8 @@ abstract class SocialLoginStateDao : Dao<SocialLoginState>(SocialLoginState::cla
 
     abstract suspend fun getByToken(token: String, sqlClient: SqlClient): SocialLoginState?
 
-    abstract suspend fun deleteByToken(token: String, sqlClient: SqlClient)
+    /** Deletes the row for [token]. Returns true if a row was actually removed (atomic one-time use). */
+    abstract suspend fun deleteByToken(token: String, sqlClient: SqlClient): Boolean
 
     abstract suspend fun deleteExpired(sqlClient: SqlClient)
 }

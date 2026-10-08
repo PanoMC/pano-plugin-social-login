@@ -70,7 +70,7 @@
           </div>
           <h5 class="text-danger">{$_('callback.error')}</h5>
           <p class="text-muted">{errorMessage}</p>
-          <a href="/login" class="btn btn-secondary">{$_('callback.back-to-login')}</a>
+          <a href={sitePath('/login')} class="btn btn-secondary">{$_('callback.back-to-login')}</a>
         {/if}
       </div>
     </div>
@@ -78,7 +78,7 @@
 {/if}
 
 <script>
-  import { _, applyLoginSession } from '../../main.js';
+  import { _, finishLogin, pano, resolveSocialError, sitePath } from '../../main.js';
   import { getContext, onMount } from 'svelte';
   import { goto } from '@panomc/sdk/svelte';
 
@@ -103,7 +103,7 @@
 
     if (errorParam) {
       callbackState = 'error';
-      errorMessage = url.searchParams.get('error_description') || errorParam;
+      errorMessage = resolveSocialError($_, errorParam);
       return;
     }
 
@@ -123,17 +123,23 @@
 
       if (body.error) {
         callbackState = 'error';
-        errorMessage = body.error;
+        errorMessage = resolveSocialError($_, body.error);
         return;
       }
 
       if (body.action === 'login') {
         callbackState = 'success';
-        await applyLoginSession(session, body.csrfToken);
-        setTimeout(() => goto('/'), 1500);
+        if ((await finishLogin(session, body.csrfToken, 1500)) === 'NO_PANEL_ACCESS') {
+          callbackState = 'error';
+          errorMessage = resolveSocialError($_, 'NO_PANEL_ACCESS');
+        }
       } else if (body.action === 'link') {
         callbackState = 'linked';
-        setTimeout(() => goto('/profile/settings'), 1500);
+        setTimeout(() => goto(pano?.isPanel ? sitePath('/') : '/profile/settings'), 1500);
+      } else if (body.action === 'register' && pano?.isPanel) {
+        // A brand-new account would have no panel access; the panel never creates one.
+        callbackState = 'error';
+        errorMessage = resolveSocialError($_, 'NO_LINKED_ACCOUNT');
       } else if (body.action === 'register') {
         const params = new URLSearchParams({
           token: body.pendingToken || '',
@@ -148,7 +154,13 @@
           provider: body.provider || provider,
           email: body.email || '',
         });
-        goto(`/social-login/link?${params.toString()}`);
+        goto(sitePath(`/social-login/link?${params.toString()}`));
+      } else if (body.action === 'complete-required') {
+        const params = new URLSearchParams({
+          token: body.pendingToken || '',
+          provider: body.provider || provider,
+        });
+        goto(sitePath(`/social-login/complete?${params.toString()}`));
       } else {
         callbackState = 'error';
         errorMessage = $_('error.generic');

@@ -30,12 +30,19 @@
 <div class="social-register-container animate__animated animate__fadeIn">
   <div class="card social-register-card">
     <div class="card-body">
+      {#if !isBrowser}
+        <!-- URL params aren't available during SSR — without this gate the `!token` branch would
+             flash INVALID_FLOW_STATE before CSR populates the form. -->
+        <div class="text-center py-4">
+          <div class="spinner-border text-secondary" role="status"></div>
+        </div>
+      {:else}
       <h5 class="card-title text-center">{$_('register.title')}</h5>
 
       {#if providerMeta}
         <div class="text-center mb-3">
           <span class="provider-badge" style="background-color: {providerMeta.color};">
-            <i class={providerMeta.icon}></i>
+            <ProviderIcon meta={providerMeta} />
             {$_('register.via', { values: { provider: providerMeta.name } })}
           </span>
         </div>
@@ -94,17 +101,31 @@
                 bind:value={passwordRepeat} />
               <label for="socialPasswordRepeat">{$_('register.password-repeat-label')}</label>
             </div>
-            <div class="form-check">
-              <input
-                type="checkbox"
-                id="socialAgreement"
-                class="form-check-input"
-                disabled={loading}
-                bind:checked={agreement} />
-              <label class="form-check-label small" for="socialAgreement">
-                {$_('register.agreement')}
-              </label>
-            </div>
+            {#if requireAgreement}
+              <div class="form-check">
+                <input
+                  type="checkbox"
+                  id="socialAgreement"
+                  class="form-check-input"
+                  disabled={loading}
+                  bind:checked={agreement} />
+                <label class="form-check-label small" for="socialAgreement">
+                  {@html $_('register.agreement', {
+                    values: {
+                      link: `<a class="rounded focus-ring" href="/rules">${$_('register.server-rules')}</a>`,
+                    },
+                  })}
+                </label>
+              </div>
+            {/if}
+            {#each contentItems as item (item.id)}
+              {#if item.component && typeof item.component !== 'function'}
+                {@const Field = item.component.default || item.component}
+                <div class="mb-2">
+                  <Field data={{ pageType: 'register' }} />
+                </div>
+              {/if}
+            {/each}
             <button
               type="submit"
               class="btn btn-lg btn-secondary w-100"
@@ -120,13 +141,16 @@
           </div>
         </form>
       {/if}
+      {/if}
     </div>
   </div>
 </div>
 
 <script>
-  import { _, applyLoginSession, PROVIDER_META } from '../../main.js';
+  import { _, applyLoginSession, PROVIDER_META, resolveSocialError, pano } from '../../main.js';
+  import ProviderIcon from '../../components/ProviderIcon.svelte';
   import { getContext, onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import { goto } from '@panomc/sdk/svelte';
 
   const ERROR_KEYS = [
@@ -148,6 +172,8 @@
     'SOCIAL_ACCOUNT_ALREADY_LINKED',
   ];
 
+  const isBrowser = typeof window !== 'undefined';
+
   let session;
   try {
     session = getContext('session');
@@ -162,16 +188,21 @@
   let password = $state('');
   let passwordRepeat = $state('');
   let agreement = $state(false);
+  let requireAgreement = $state(true);
   let loading = $state(false);
   let error = $state(null);
   let success = $state(false);
+
+  // Plugin-contributed register fields (e.g. auth-guard captcha) injected into "register-content".
+  let contentItems = $state([]);
+  let contentUnsub = null;
 
   let providerMeta = $derived(provider ? PROVIDER_META[provider] : null);
   let canSubmit = $derived(
     username.length >= 3 && email.length > 0 && password.length >= 6 && agreement,
   );
 
-  onMount(() => {
+  onMount(async () => {
     const url = new URL(window.location.href);
     token = url.searchParams.get('token');
     provider = url.searchParams.get('provider') || '';
@@ -181,13 +212,42 @@
     if (!token) {
       error = $_('register.error.INVALID_FLOW_STATE');
     }
+
+    // Mirror the theme register: only require the agreement when the site enables it.
+    const s = session ? get(session) : null;
+    if (s && s.siteInfo) {
+      requireAgreement = !!s.siteInfo.hasRegisterAgreement;
+      if (!requireAgreement) agreement = true;
+    }
+
+    // Run the theme's register lifecycle so register-content plugins (captcha, …) populate and
+    // render here exactly as they do on the theme's own register page. No knowledge of which
+    // plugin or what it adds — just the generic theme hook surface.
+    if (pano?.ui?.auth?.register?.load) {
+      try {
+        await pano.ui.auth.register.load();
+        contentUnsub = pano.ui.auth.register.content.get().subscribe((items) => {
+          contentItems = items || [];
+        });
+      } catch (e) {
+        console.error('[pano-plugin-social-login] Failed to load register content', e);
+      }
+    }
+  });
+
+  // Cleanup via $effect (client-only by design) rather than top-level `onDestroy` — Svelte 5
+  // SSR throws on this page's compiled onDestroy output (see SocialLinkExistsPage for context).
+  $effect(() => {
+    return () => {
+      if (contentUnsub) contentUnsub();
+    };
   });
 
   function resolveError(code) {
     if (code && ERROR_KEYS.includes(code)) {
       return $_(`register.error.${code}`);
     }
-    return code || $_('error.generic');
+    return resolveSocialError($_, code);
   }
 
   async function onSubmit() {

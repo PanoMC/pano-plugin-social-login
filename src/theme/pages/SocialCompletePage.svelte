@@ -71,7 +71,7 @@
           </div>
           <h5 class="text-danger">{$_('callback.error')}</h5>
           <p class="text-muted">{errorMessage}</p>
-          <a href="/login" class="btn btn-secondary">{$_('callback.back-to-login')}</a>
+          <a href={sitePath('/login')} class="btn btn-secondary">{$_('callback.back-to-login')}</a>
         {/if}
       </div>
     </div>
@@ -84,9 +84,10 @@
       core completion endpoint doesn't run captcha hooks.
     -->
     <div class="slot-mount" aria-hidden="true">
-      {#each $contentItems as item (item.id)}
-        {#if item.id !== 'login-form' && item.component}
-          <ViewComponent component={item.component} data={{ pageType: 'login' }} />
+      {#each contentItems as item (item.id)}
+        {#if item.id !== 'login-form' && item.component && typeof item.component !== 'function'}
+          {@const Field = item.component.default || item.component}
+          <Field data={{ pageType: 'login' }} />
         {/if}
       {/each}
     </div>
@@ -94,10 +95,8 @@
 {/if}
 
 <script>
-  import { _, applyLoginSession, resolveSocialError } from '../../main.js';
+  import { _, finishLogin, resolveSocialError, pano, sitePath } from '../../main.js';
   import { getContext, onMount, tick } from 'svelte';
-  import { goto } from '@panomc/sdk/svelte';
-  import pano from '@panomc/sdk';
 
   const isBrowser = typeof window !== 'undefined';
 
@@ -111,9 +110,19 @@
     // SSR — session stays undefined.
   }
 
-  // Subscribe to the theme's login-content slot. Items are populated by `pano.ui.auth.login.load()`
-  // in onMount; the reactive store causes them to render once available.
-  const contentItems = pano.ui.auth.login.content.get();
+  // Plugin-contributed login-content items (e.g. auth-guard's TwoFactorLoginGuard, captcha widget).
+  // Populated by `pano.ui.auth.login.load()` in onMount; the explicit subscribe mirrors the pattern
+  // used by SocialLinkExistsPage.
+  let contentItems = $state([]);
+  let contentUnsub = null;
+
+  // Cleanup via $effect (client-only by design) rather than top-level `onDestroy` — see
+  // SocialLinkExistsPage for context: SSR throws on this page's compiled onDestroy output.
+  $effect(() => {
+    return () => {
+      if (contentUnsub) contentUnsub();
+    };
+  });
 
   onMount(async () => {
     const url = new URL(window.location.href);
@@ -127,12 +136,18 @@
 
     // Populate the login-content slot so its widgets (auth-guard's TwoFactorLoginGuard, etc.)
     // mount and register their fetch interceptors BEFORE we fire the completion request.
-    try {
-      await pano.ui.auth.login.load();
-    } catch (e) {
-      console.error('[pano-plugin-social-login] Failed to load login content', e);
+    if (pano?.ui?.auth?.login?.load) {
+      try {
+        await pano.ui.auth.login.load();
+        contentUnsub = pano.ui.auth.login.content.get().subscribe((items) => {
+          contentItems = items || [];
+        });
+      } catch (e) {
+        console.error('[pano-plugin-social-login] Failed to load login content', e);
+      }
     }
-    // Let Svelte render the newly-resolved slot items so their onMount runs.
+    // Let Svelte render the newly-resolved slot items so their onMount runs (and the
+    // TwoFactorLoginGuard's fetch monkey-patch is active before we fire the POST).
     await tick();
 
     try {
@@ -153,8 +168,10 @@
       }
 
       pageState = 'success';
-      await applyLoginSession(session, body.csrfToken);
-      setTimeout(() => goto('/'), 1200);
+      if ((await finishLogin(session, body.csrfToken)) === 'NO_PANEL_ACCESS') {
+        pageState = 'error';
+        errorMessage = resolveSocialError($_, 'NO_PANEL_ACCESS');
+      }
     } catch (e) {
       console.error('[pano-plugin-social-login] Complete-pending error:', e);
       pageState = 'error';

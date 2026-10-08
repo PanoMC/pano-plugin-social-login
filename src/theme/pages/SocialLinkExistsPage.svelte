@@ -30,12 +30,20 @@
 <div class="social-link-container animate__animated animate__fadeIn">
   <div class="card social-link-card">
     <div class="card-body">
+      {#if !isBrowser}
+        <!-- URL params (token/provider/email) aren't available during SSR, so don't render the
+             conditional content yet — the `!token` branch would otherwise flash the
+             INVALID_FLOW_STATE alert before CSR replaces it with the real form. -->
+        <div class="text-center py-4">
+          <div class="spinner-border text-secondary" role="status"></div>
+        </div>
+      {:else}
       <h5 class="card-title text-center">{$_('link-existing.title')}</h5>
 
       {#if providerMeta}
         <div class="text-center mb-3">
           <span class="provider-badge" style="background-color: {providerMeta.color};">
-            <i class={providerMeta.icon}></i>
+            <ProviderIcon meta={providerMeta} />
             {providerMeta.name}
           </span>
         </div>
@@ -57,7 +65,7 @@
         <div class="alert alert-danger py-2" role="alert">
           {$_('link-existing.error.INVALID_FLOW_STATE')}
         </div>
-        <a href="/login" class="btn btn-secondary w-100 mt-2">{$_('link-existing.back-to-login')}</a>
+        <a href={sitePath('/login')} class="btn btn-secondary w-100 mt-2">{$_('link-existing.back-to-login')}</a>
       {:else}
         <form onsubmit={(e) => { e.preventDefault(); onSubmit(); }}>
           <div class="vstack gap-3">
@@ -79,6 +87,17 @@
                 bind:value={password} />
               <label for="linkPassword">{$_('link-existing.password-label')}</label>
             </div>
+            {#each contentItems as item (item.id)}
+              {#if item.component && typeof item.component !== 'function'}
+                {@const Field = item.component.default || item.component}
+                <div>
+                  <!-- deferred: false — this form is single-submit (username + password in one go), so the
+                     login-content captcha should render immediately rather than waiting for an
+                     initial failed request as on the theme's two-step /login page. -->
+                <Field data={{ pageType: 'login', deferred: false }} />
+                </div>
+              {/if}
+            {/each}
             <button
               type="submit"
               class="btn btn-lg btn-secondary w-100"
@@ -91,16 +110,18 @@
                 {$_('link-existing.submit')}
               {/if}
             </button>
-            <a href="/login" class="text-center small">{$_('link-existing.back-to-login')}</a>
+            <a href={sitePath('/login')} class="text-center small">{$_('link-existing.back-to-login')}</a>
           </div>
         </form>
+      {/if}
       {/if}
     </div>
   </div>
 </div>
 
 <script>
-  import { _, applyLoginSession, PROVIDER_META } from '../../main.js';
+  import { _, finishLogin, PROVIDER_META, resolveSocialError, pano, sitePath } from '../../main.js';
+  import ProviderIcon from '../../components/ProviderIcon.svelte';
   import { getContext, onMount } from 'svelte';
   import { goto } from '@panomc/sdk/svelte';
 
@@ -112,6 +133,8 @@
     'INVALID_FLOW_STATE',
     'SOCIAL_ACCOUNT_ALREADY_LINKED',
   ];
+
+  const isBrowser = typeof window !== 'undefined';
 
   let session;
   try {
@@ -129,10 +152,14 @@
   let error = $state(null);
   let success = $state(false);
 
+  // Plugin-contributed login fields (e.g. auth-guard captcha) injected into "login-content".
+  let contentItems = $state([]);
+  let contentUnsub = null;
+
   let providerMeta = $derived(provider ? PROVIDER_META[provider] : null);
   let canSubmit = $derived(usernameOrEmail.length > 0 && password.length > 0);
 
-  onMount(() => {
+  onMount(async () => {
     const url = new URL(window.location.href);
     token = url.searchParams.get('token');
     provider = url.searchParams.get('provider') || '';
@@ -141,13 +168,35 @@
     if (!token) {
       error = $_('link-existing.error.INVALID_FLOW_STATE');
     }
+
+    // This is a password login, so run the theme's login lifecycle: login-content plugins
+    // (captcha, …) populate and render here just like on the theme's own login page.
+    if (pano?.ui?.auth?.login?.load) {
+      try {
+        await pano.ui.auth.login.load();
+        contentUnsub = pano.ui.auth.login.content.get().subscribe((items) => {
+          contentItems = items || [];
+        });
+      } catch (e) {
+        console.error('[pano-plugin-social-login] Failed to load login content', e);
+      }
+    }
+  });
+
+  // Cleanup runs via $effect (client-only by design) rather than a top-level `onDestroy` — the
+  // latter throws during SSR on this page in Svelte 5 ("Cannot read properties of null (reading
+  // 'r')") because the compiled SSR output calls onDestroy outside a component context.
+  $effect(() => {
+    return () => {
+      if (contentUnsub) contentUnsub();
+    };
   });
 
   function resolveError(code) {
     if (code && ERROR_KEYS.includes(code)) {
       return $_(`link-existing.error.${code}`);
     }
-    return code || $_('error.generic');
+    return resolveSocialError($_, code);
   }
 
   async function onSubmit() {
@@ -173,9 +222,23 @@
         return;
       }
 
+      // The link was created, but a step-up (e.g. 2FA) is required before the session can be issued.
+      // Hand off to the plugin-agnostic completion page; auth-guard's modal handles the challenge.
+      if (body.action === 'complete-required') {
+        const params = new URLSearchParams({
+          token: body.pendingToken || '',
+          provider: body.provider || provider || '',
+        });
+        goto(sitePath(`/social-login/complete?${params.toString()}`));
+        return;
+      }
+
       success = true;
-      await applyLoginSession(session, body.csrfToken);
-      setTimeout(() => goto('/'), 1200);
+      if ((await finishLogin(session, body.csrfToken)) === 'NO_PANEL_ACCESS') {
+        success = false;
+        loading = false;
+        error = resolveSocialError($_, 'NO_PANEL_ACCESS');
+      }
     } catch (e) {
       console.error('[pano-plugin-social-login] Link-existing error:', e);
       error = $_('error.connection');

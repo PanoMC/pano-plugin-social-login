@@ -48,7 +48,7 @@
         {#if loadingProvider === key}
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         {:else}
-          <i class={meta?.icon || 'fas fa-link'}></i>
+          <ProviderIcon {meta} />
         {/if}
         <span>{$_('continue-with', { values: { provider: meta?.name || key } })}</span>
       </button>
@@ -60,10 +60,30 @@
 {/if}
 
 <script>
-  import { _, enabledProviders, PROVIDER_META } from '../../../main.js';
+  import { _, enabledProviders, PROVIDER_META, resolveSocialError } from '../../../main.js';
+  import ProviderIcon from '../../../components/ProviderIcon.svelte';
+  import ApiUtil from '@panomc/sdk/utils/api';
+  import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
 
   let loadingProvider = $state(null);
   let errorMessage = $state('');
+
+  // The enabled-provider list is populated during SSR by the plugin's login/register
+  // onLoad hook (a module-level store). On the client the module re-initialises to [],
+  // so the SSR-rendered buttons would otherwise disappear after hydration. Re-fetch the
+  // public config on mount (client only) to repopulate the store so the buttons persist.
+  onMount(async () => {
+    if (get(enabledProviders).length > 0) return;
+    try {
+      const res = await ApiUtil.get({ path: '/api/social-login/config' });
+      if (res?.result === 'ok' && Array.isArray(res.enabledProviders)) {
+        enabledProviders.set(res.enabledProviders);
+      }
+    } catch (e) {
+      console.error('[pano-plugin-social-login] Failed to load social config (client)', e);
+    }
+  });
 
   async function startAuth(provider) {
     loadingProvider = provider;
@@ -77,7 +97,7 @@
         return;
       }
 
-      errorMessage = body.error || $_('error.generic');
+      errorMessage = resolveSocialError($_, body.error);
     } catch (e) {
       console.error('[pano-plugin-social-login] Auth init failed', e);
       errorMessage = $_('error.generic');

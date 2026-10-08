@@ -49,9 +49,10 @@ class SocialLoginStateDaoImpl : SocialLoginStateDao() {
         return rows.toEntities().getOrNull(0)
     }
 
-    override suspend fun deleteByToken(token: String, sqlClient: SqlClient) {
+    override suspend fun deleteByToken(token: String, sqlClient: SqlClient): Boolean {
         val query = "DELETE FROM `${getTablePrefix() + tableName}` WHERE `token` = ?"
-        sqlClient.preparedQuery(query).execute(Tuple.of(token)).coAwait()
+        val rows = sqlClient.preparedQuery(query).execute(Tuple.of(token)).coAwait()
+        return rows.rowCount() > 0
     }
 
     override suspend fun deleteExpired(sqlClient: SqlClient) {

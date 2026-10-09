@@ -10,8 +10,8 @@ import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
 import com.panomc.plugins.sociallogin.permission.ManageSocialLinksPermission
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Parameters
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Parameters
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
@@ -23,7 +23,7 @@ class PanelGetPlayerSocialLinksAPI(
     private val plugin: SocialLoginPlugin,
     private val socialLoginLinkDao: SocialLoginLinkDao
 ) : PanelApi() {
-    override val paths = listOf(Path("/api/panel/social-login/player/:username/links", RouteType.GET))
+    override val paths = listOf(Path("/player/:username/links", RouteType.GET))
 
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)
@@ -50,7 +50,7 @@ class PanelGetPlayerSocialLinksAPI(
 
         return Successful(
             mapOf(
-                "links" to links.map {
+                "items" to links.map {
                     mapOf(
                         "provider" to it.provider,
                         "displayName" to it.displayName,

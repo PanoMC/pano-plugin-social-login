@@ -3,8 +3,12 @@ package com.panomc.plugins.sociallogin.routes.api
 import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.LoginUserIsBanned
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.error.NotLoggedIn
+import com.panomc.platform.error.RateLimited
+import com.panomc.platform.schema.CoreSchemas
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
 import com.panomc.platform.util.TextUtil
 import com.panomc.plugins.license.LicenseGuard
@@ -14,6 +18,7 @@ import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
 import com.panomc.plugins.sociallogin.db.model.SocialLoginLink
 import com.panomc.plugins.sociallogin.error.InvalidFlowState
 import com.panomc.plugins.sociallogin.error.ProviderNotEnabled
+import com.panomc.plugins.sociallogin.error.SocialLoginFailed
 import com.panomc.plugins.sociallogin.error.SocialAccountAlreadyLinked
 import com.panomc.plugins.sociallogin.service.OAuthProviderRegistry
 import com.panomc.plugins.sociallogin.service.SocialLoginService
@@ -21,9 +26,10 @@ import com.panomc.plugins.sociallogin.service.SocialProfile
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.RequestPredicate
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Bodies
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Bodies
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
+import io.vertx.json.schema.common.dsl.Schemas.enumSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 import io.vertx.sqlclient.SqlClient
@@ -40,7 +46,24 @@ class SocialProcessAPI(
     private val plugin: SocialLoginPlugin,
     private val socialLoginLinkDao: SocialLoginLinkDao
 ) : Api() {
-    override val paths = listOf(Path("/api/social-login/process", RouteType.POST))
+    override val paths = listOf(Path("/process", RouteType.POST))
+
+    override val doc = EndpointDoc(
+        summary = "Finishes a provider round trip: exchanges the code for a profile and signs in, links the account, or hands back a token for the register or account-exists step.",
+        tag = "auth",
+        response = CoreSchemas.sessionFields(
+            objectSchema()
+                .requiredProperty("action", enumSchema("login", "link", "complete-required", "account-exists", "register"))
+                .requiredProperty("provider", stringSchema())
+                .optionalProperty("pendingToken", stringSchema())
+                .optionalProperty("email", stringSchema())
+                .optionalProperty("suggestedUsername", stringSchema())
+        ),
+        errors = listOf(
+            NotFound::class, NotLoggedIn::class, RateLimited::class, ProviderNotEnabled::class, InvalidFlowState::class,
+            SocialLoginFailed::class, SocialAccountAlreadyLinked::class, LoginUserIsBanned::class
+        )
+    )
 
     private val oauthRegistry by lazy {
         plugin.pluginBeanContext.getBean(OAuthProviderRegistry::class.java)
@@ -105,7 +128,7 @@ class SocialProcessAPI(
             oauthProvider.exchangeCodeForProfile(redirectUri, code, codeVerifier)
         } catch (e: Exception) {
             plugin.logger.error("Social OAuth exchange failed for ${provider.key}: ${e.message}", e)
-            return Successful(mapOf("error" to (e.message ?: "Social login failed.")))
+            throw SocialLoginFailed(e.message ?: "Social login failed.")
         }
 
         return when (intent) {
@@ -166,7 +189,7 @@ class SocialProcessAPI(
                 // ANY deny (2FA, future step-ups, …) escalates to the platform's pending-session
                 // mechanism. social-login stays agnostic of what the challenge is: the theme's
                 // login form + installed login-content plugins drive the UI, and
-                // POST /api/auth/complete-pending re-runs the same hooks with the user's input.
+                // POST /api/v1/auth/complete-pending re-runs the same hooks with the user's input.
                 val pendingToken = authProvider.createPendingSession(
                     user.id,
                     "social-login:${provider.key}",
@@ -180,10 +203,9 @@ class SocialProcessAPI(
                     )
                 )
             }
-            val csrfToken = socialLoginService.loginUser(existing.userId, context, sqlClient)
-            return Successful(
-                mapOf("action" to "login", "csrfToken" to csrfToken, "provider" to provider.key)
-            )
+            // A cookie session answers `csrfToken`; a front-end with a stored key gets `sessionToken` + `expiresAt`.
+            val session = socialLoginService.loginUser(existing.userId, context, sqlClient)
+            return Successful(mapOf("action" to "login", "provider" to provider.key) + session)
         }
 
         // Not linked. If the provider returned a *verified* email that already belongs to a Pano

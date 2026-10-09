@@ -54,12 +54,12 @@ Aşağıdaki bulguların tamamı koda işlendi (`./gradlew :plugins:pano-plugin-
 - `<prefix>social_login_state` — `id, token, kind, payload, expiresAt`; UNIQUE `token`
   (`SocialLoginStateDaoImpl.kt:22-30`). `kind` ∈ {`OAUTH_STATE`, `PENDING_REGISTRATION`}.
 
-Tarayıcı callback'i (`GET /api/social-login/:provider/callback`, `SocialCallbackAPI.kt:23`)
+Tarayıcı callback'i (`GET /api/social-login/providers/:provider/callback`, `SocialCallbackAPI.kt:23`)
 yalnızca SSR sayfasına 302 atar; ağır iş (`code`→token→profil) `POST /api/social-login/process`
 içinde yapılır.
 
 **(a) Yeni kullanıcı — sosyal giriş**
-1. `GET /api/social-login/:provider/auth` (`SocialAuthInitAPI.kt:27`): provider enabled mı bakar,
+1. `GET /api/social-login/providers/:provider/auth` (`SocialAuthInitAPI.kt:27`): provider enabled mı bakar,
    gerekiyorsa PKCE verifier üretir, `OAUTH_STATE` satırı oluşturur (intent=`auth`), authorize URL döner.
 2. Tarayıcı → provider → callback → `/social-login/callback` (SSR) → `POST .../process` (`SocialProcessAPI.kt:42`).
 3. `handleAuth`: bağ yok + e-posta eşleşmiyor → `PENDING_REGISTRATION` satırı, `action="register"`.
@@ -77,7 +77,7 @@ Kullanıcı `/social-login/link` → `POST .../link-existing` (`SocialLinkExisti
 Pano **parolasıyla authenticate**, **e-posta eşitliği şartı** (`EmailMismatch`), zaten-bağlı kontrolü, bağ ekler, giriş.
 
 **(d) Ayarlardan bağlama (oturum açıkken)**
-`GET /api/social-login/:provider/link` (`SocialLinkInitAPI.kt:28`, `LoggedInApi`) → `OAUTH_STATE` (intent=`link`,
+`GET /api/social-login/providers/:provider/link` (`SocialLinkInitAPI.kt:28`, `LoggedInApi`) → `OAUTH_STATE` (intent=`link`,
 payload'da userId). Callback → `handleLink` (`SocialProcessAPI.kt:113`): **userId state'ten değil oturumdan**
 alınır; başka kullanıcıya bağlıysa `SocialAccountAlreadyLinked`; aynı provider'ın eski bağı silinir, yenisi eklenir.
 

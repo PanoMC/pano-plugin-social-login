@@ -15,7 +15,8 @@
     "TWO_FACTOR_REQUIRED": "A two-factor code is required.",
     "PLUGIN_DENIED_LOGIN": "Verification failed. Please complete the challenge and try again.",
     "NO_PANEL_ACCESS": "This account has no access to the management panel.",
-    "NO_LINKED_ACCOUNT": "No account is linked to this sign-in method yet. Sign in with your password instead."
+    "NO_LINKED_ACCOUNT": "No account is linked to this sign-in method yet. Sign in with your password instead.",
+    "SOCIAL_LOGIN_FAILED": "The provider did not accept the sign-in. Please try again."
   },
   "two-factor": {
     "title": "Two-Factor Authentication",
@@ -163,5 +164,15 @@
   "activity-logs": {
     "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> updated the Social Login plugin settings.",
     "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b> unlinked the <b>{provider}</b> account of player <b>{targetUsername}</b>."
+  },
+  "fallback": {
+    "callback": {
+      "title": "Signing in",
+      "heading": "Signing you in",
+      "lead": "We are finishing your sign-in with the provider.",
+      "done": "Done. If this social account is linked to your account you are signed in now; otherwise create or link the account on the site's sign-in page first.",
+      "continue": "Continue",
+      "invalid": "This sign-in link is not valid. Start again from the sign-in page."
+    }
   }
 }

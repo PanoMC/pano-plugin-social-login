@@ -1,26 +1,26 @@
 <script module>
   /**
    * Runs in the panel layout `load` (via `executeHookLoad`) so `request: event` carries
-   * CSRF + cookies. ApiUtil is imported here separately from the instance script — Svelte 5
+   * CSRF + cookies. api is imported here separately from the instance script — Svelte 5
    * errors on identically-named imports across both scripts.
    * @param {import('@sveltejs/kit').LayoutLoadEvent} event
    */
   export async function load(event) {
-    const { default: ApiUtil } = await import('@panomc/sdk/utils/api');
+    const { api } = await import('@panomc/sdk/plugin-api');
     const username = event.params?.username;
     if (!username || typeof username !== 'string') {
       return {};
     }
     try {
-      const res = await ApiUtil.get({
-        path: `/api/panel/social-login/player/${encodeURIComponent(username)}/links`,
+      const res = await api.panel.get({
+        path: `/player/${encodeURIComponent(username)}/links`,
         request: event,
       });
       if (res && !res.error) {
         return {
           socialPreload: {
             _ok: true,
-            links: Array.isArray(res.links) ? res.links : [],
+            links: Array.isArray(res.items) ? res.items : [],
           },
         };
       }
@@ -63,7 +63,7 @@
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
 
   export let playerData;
 
@@ -87,11 +87,11 @@
     if (!playerData?.username) return;
     loading = true;
     try {
-      const res = await ApiUtil.get({
-        path: `/api/panel/social-login/player/${encodeURIComponent(playerData.username)}/links`,
+      const res = await api.panel.get({
+        path: `/player/${encodeURIComponent(playerData.username)}/links`,
       });
       if (res && !res.error) {
-        links = Array.isArray(res.links) ? res.links : [];
+        links = Array.isArray(res.items) ? res.items : [];
       }
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to load sidebar links', e);

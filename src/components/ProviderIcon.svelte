@@ -12,6 +12,7 @@
 
 {#if meta?.svg}
   <svg
+    class="social-login-provider-icon"
     viewBox="0 0 24 24"
     width="1em"
     height="1em"
@@ -22,5 +23,5 @@
     <path d={meta.svg}></path>
   </svg>
 {:else}
-  <i class="fas fa-link" style={brandColor ? `color: ${brandColor}` : null}></i>
+  <i class="social-login-provider-icon fas fa-link" style={brandColor ? `color: ${brandColor}` : null}></i>
 {/if}

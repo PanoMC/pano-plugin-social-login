@@ -9,6 +9,7 @@ import com.panomc.platform.db.model.User
 import com.panomc.platform.error.LoginUserIsBanned
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.error.RateLimited
+import com.panomc.platform.route.ApiPaths
 import com.panomc.platform.util.BanUtil
 import com.panomc.platform.util.CSRFTokenGenerator
 import com.panomc.platform.util.RateLimitManager
@@ -102,7 +103,7 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
     fun resolveRedirectUri(provider: SocialProvider): String {
         val configuredBase = configManager.config.redirectBaseUrl.trim()
         val base = configuredBase.ifBlank { platformConfigManager.config.websiteUrl }.trimEnd('/')
-        return "$base/api/social-login/${provider.key}/callback"
+        return base + ApiPaths.plugin(plugin.pluginId, "/providers/${provider.key}/callback")
     }
 
     // --- OAuth state: random, server-stored, one-time — CSRF protection for the round-trip ---
@@ -184,7 +185,7 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
      * Runs the platform's [AuthEventListener.onBeforeLogin] hooks — the same ones the core LoginAPI
      * fires — to detect whether the session must pause for a step-up (2FA, …). Returns the first
      * Deny, or null to proceed. Callers that get a Deny should escalate to the platform's
-     * pending-session mechanism (`AuthProvider.createPendingSession` + `/api/auth/complete-pending`)
+     * pending-session mechanism (`AuthProvider.createPendingSession` + `/api/v1/auth/complete-pending`)
      * rather than handling the challenge themselves; social-login stays agnostic of the challenge.
      */
     suspend fun runOnBeforeLogin(
@@ -198,21 +199,20 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
     // --- Session issuance ---
 
     /**
-     * Issues a login session for [userId]: rejects banned users, generates the auth token,
-     * sets cookies and updates last-login. Returns the CSRF token.
+     * Issues a login session for [userId]: rejects banned users, opens the session through the host's
+     * `issueSession` and updates last-login. A cookie session answers `csrfToken`; a request with a stored
+     * front-end key gets `sessionToken` and `expiresAt` and no cookies. The caller merges the map into its answer.
      */
-    suspend fun loginUser(userId: Long, context: RoutingContext, sqlClient: SqlClient): String {
+    suspend fun loginUser(userId: Long, context: RoutingContext, sqlClient: SqlClient): Map<String, Any?> {
         val user = databaseManager.userDao.getById(userId, sqlClient) ?: throw NotFound()
 
         if (BanUtil.isBanned(user)) {
             throw LoginUserIsBanned(extras = mapOf("reason" to user.banMessage, "until" to user.bannedUntil))
         }
 
-        val authToken = authProvider.login(user.username, context, sqlClient)
-        val csrfToken = CSRFTokenGenerator.nextToken()
-        authProvider.setCookies(context, authToken, csrfToken)
+        val session = authProvider.issueSession(user.username, context, sqlClient)
         databaseManager.userDao.updateLastLoginDate(userId, sqlClient)
 
-        return csrfToken
+        return session
     }
 }

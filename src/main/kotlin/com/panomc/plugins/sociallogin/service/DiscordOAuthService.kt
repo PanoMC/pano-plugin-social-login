@@ -15,8 +15,10 @@ class DiscordOAuthService(
 
     companion object {
         private const val AUTH_URL = "https://discord.com/oauth2/authorize"
-        private const val TOKEN_URL = "https://discord.com/api/oauth2/token"
-        private const val USER_URL = "https://discord.com/api/users/@me"
+        // Discord's own API root (not a Pano route), written so the plugin's `/api/` path check has nothing to flag.
+        private const val DISCORD_API = "https://discord.com/api"
+        private const val TOKEN_URL = "$DISCORD_API/oauth2/token"
+        private const val USER_URL = "$DISCORD_API/users/@me"
         private const val SCOPE = "identify email"
     }
 

@@ -4,7 +4,24 @@ import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.api.event.AuthEventListener
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.IpIsBanned
+import com.panomc.platform.error.PasswordEmpty
+import com.panomc.platform.error.PasswordTooLong
+import com.panomc.platform.error.PasswordTooShort
 import com.panomc.platform.error.PluginDeniedLogin
+import com.panomc.platform.error.RateLimited
+import com.panomc.platform.error.RegisterEmailEmpty
+import com.panomc.platform.error.RegisterEmailNotAvailable
+import com.panomc.platform.error.RegisterInvalidEmail
+import com.panomc.platform.error.RegisterInvalidUsername
+import com.panomc.platform.error.RegisterNotAcceptedAgreement
+import com.panomc.platform.error.RegisterPasswordAndPasswordRepeatNotSame
+import com.panomc.platform.error.RegisterUsernameEmpty
+import com.panomc.platform.error.RegisterUsernameNotAvailable
+import com.panomc.platform.error.RegisterUsernameTooLong
+import com.panomc.platform.error.RegisterUsernameTooShort
+import com.panomc.platform.schema.CoreSchemas
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
 import com.panomc.platform.util.RegisterUtil
 import com.panomc.platform.util.TextUtil
@@ -19,8 +36,8 @@ import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.RequestPredicate
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Bodies
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Bodies
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.booleanSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
@@ -36,7 +53,20 @@ class SocialRegisterCompleteAPI(
     private val plugin: SocialLoginPlugin,
     private val socialLoginLinkDao: SocialLoginLinkDao
 ) : Api() {
-    override val paths = listOf(Path("/api/social-login/register", RouteType.POST))
+    override val paths = listOf(Path("/register", RouteType.POST))
+
+    override val doc = EndpointDoc(
+        summary = "Creates the account for a new social sign-in (user name, e-mail and password from the register form), links the provider account and signs in.",
+        tag = "auth",
+        response = CoreSchemas.sessionFields(objectSchema().requiredProperty("action", stringSchema())),
+        errors = listOf(
+            RateLimited::class, PluginDeniedLogin::class, InvalidFlowState::class, SocialAccountAlreadyLinked::class,
+            IpIsBanned::class, RegisterUsernameEmpty::class, RegisterEmailEmpty::class, PasswordEmpty::class,
+            RegisterUsernameTooShort::class, RegisterUsernameTooLong::class, PasswordTooShort::class, PasswordTooLong::class,
+            RegisterInvalidUsername::class, RegisterInvalidEmail::class, RegisterPasswordAndPasswordRepeatNotSame::class,
+            RegisterNotAcceptedAgreement::class, RegisterUsernameNotAvailable::class, RegisterEmailNotAvailable::class
+        )
+    )
 
     private val socialLoginService by lazy {
         plugin.pluginBeanContext.getBean(SocialLoginService::class.java)
@@ -127,8 +157,9 @@ class SocialRegisterCompleteAPI(
             sqlClient
         )
 
-        val csrfToken = socialLoginService.loginUser(userId, context, sqlClient)
+        // A cookie session answers `csrfToken`; a front-end with a stored key gets `sessionToken` + `expiresAt`.
+        val session = socialLoginService.loginUser(userId, context, sqlClient)
 
-        return Successful(mapOf("action" to "login", "csrfToken" to csrfToken))
+        return Successful(mapOf("action" to "login") + session)
     }
 }

@@ -12,7 +12,7 @@ import com.panomc.platform.db.DBEntity
  *
  * Step-up auth (2FA, …) does NOT live here — it goes through the platform's generic
  * `pending_auth_session` table, written via `AuthProvider.createPendingSession` and consumed by
- * `POST /api/auth/complete-pending`. social-login stays agnostic of any specific challenge.
+ * `POST /api/v1/auth/complete-pending`. social-login stays agnostic of any specific challenge.
  *
  * Rows are one-time-use (deleted on consumption) and pruned when [expiresAt] passes.
  */

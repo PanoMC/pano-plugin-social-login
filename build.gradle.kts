@@ -1,3 +1,5 @@
+import java.util.Properties
+import java.util.zip.ZipFile
 import java.net.URL
 
 plugins {
@@ -47,6 +49,22 @@ val bunBinDir = File(bunDir, bunPlatform)
 var bunBin = if (isWindows) File(bunBinDir, "bun.exe") else File(bunBinDir, "bun")
 
 val pluginId: String by project
+
+// api-level (pano-api migrate-v1): "panoApiLevel" of the pano-web-platform tree this plugin is built in, else "current" from
+// the pano-api-level.properties inside the Pano jar on compileClasspath. `apiLevel=` in gradle.properties lowers it.
+val panoApiLevel: String? by lazy {
+    (findProperty("apiLevel") as String?)
+        ?: (rootProject.findProperty("panoApiLevel") as String?)
+        ?: configurations.findByName("compileClasspath")?.files?.firstNotNullOfOrNull { jar ->
+            if (!jar.isFile || !jar.name.endsWith(".jar")) null
+            else ZipFile(jar).use { zip ->
+                zip.getEntry("pano-api-level.properties")?.let { entry ->
+                    Properties().apply { load(zip.getInputStream(entry)) }.getProperty("current")
+                }
+            }
+        }
+}
+
 val pluginName: String by project
 val pluginDescription: String? by project
 val pluginPanoVersion: String by project
@@ -69,6 +87,17 @@ dependencies {
         compileOnly(project(mapOf("path" to ":Pano")))
     } else {
         compileOnly("com.github.panomc:pano:v1.0.0-alpha.463")
+    }
+
+    // Unit tests of the error classes, the endpoint docs and the built-in page (they extend or call the host's classes).
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.13.3")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.3")
+    if (bootstrap) {
+        testImplementation(project(mapOf("path" to ":Pano")))
+        testImplementation("io.vertx:vertx-web:${vertxVersion}")
+        testImplementation("io.vertx:vertx-lang-kotlin:${vertxVersion}")
+        testImplementation("com.google.code.gson:gson:${gsonVersion}")
     }
 
     compileOnly(kotlin("stdlib-jdk8"))
@@ -261,6 +290,7 @@ internal object PluginBuildConstants {
     shadowJar {
         manifest {
             attributes["id"] = pluginId
+            panoApiLevel?.let { attributes["api-level"] = it }
             attributes["name"] = pluginName
             pluginDescription?.let { attributes["description"] = it }
             attributes["pano-version"] = pluginPanoVersion
@@ -361,4 +391,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }

@@ -1,11 +1,11 @@
 <style>
-  .social-buttons {
+  .social-login-social-login-buttons__list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .btn-social {
+  .social-login-social-login-buttons__button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -19,52 +19,84 @@
     transition: all 0.2s ease;
   }
 
-  .btn-social:hover:not(:disabled) {
+  .social-login-social-login-buttons__button:hover:not(:disabled) {
     transform: translateY(-1px);
     filter: brightness(1.08);
     color: #fff;
   }
 
-  .btn-social:active:not(:disabled) {
+  .social-login-social-login-buttons__button:active:not(:disabled) {
     transform: translateY(0);
   }
 
-  .btn-social:disabled {
+  .social-login-social-login-buttons__button:disabled {
     opacity: 0.65;
     cursor: not-allowed;
+  }
+
+  .social-login-social-login-buttons__error {
+    animation: social-login-shake-x 1s both;
+  }
+
+  @keyframes social-login-shake-x {
+    from,
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+      transform: translate3d(-10px, 0, 0);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+      transform: translate3d(10px, 0, 0);
+    }
   }
 </style>
 
 {#if $enabledProviders.length > 0}
-  <div class="social-buttons">
-    {#each $enabledProviders as key (key)}
-      {@const meta = PROVIDER_META[key]}
-      <button
-        class="btn btn-social"
-        type="button"
-        style="background-color: {meta?.color || '#555'};"
-        disabled={loadingProvider !== null}
-        onclick={() => startAuth(key)}>
-        {#if loadingProvider === key}
-          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        {:else}
-          <ProviderIcon {meta} />
-        {/if}
-        <span>{$_('continue-with', { values: { provider: meta?.name || key } })}</span>
-      </button>
-    {/each}
+  <div class="social-login-social-login-buttons">
+    <div class="social-login-social-login-buttons__list">
+      {#each $enabledProviders as key (key)}
+        {@const meta = PROVIDER_META[key]}
+        <button
+          class="social-login-social-login-buttons__button btn"
+          type="button"
+          style="background-color: {meta?.color || '#555'};"
+          disabled={loadingProvider !== null}
+          onclick={() => startAuth(key)}>
+          {#if loadingProvider === key}
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          {:else}
+            <ProviderIcon {meta} />
+          {/if}
+          <span>{$_('continue-with', { values: { provider: meta?.name || key } })}</span>
+        </button>
+      {/each}
+    </div>
+    {#if errorMessage}
+      <div class="social-login-social-login-buttons__error alert alert-danger py-2 mt-2 small">{errorMessage}</div>
+    {/if}
   </div>
-  {#if errorMessage}
-    <div class="alert alert-danger py-2 mt-2 small animate__animated animate__shakeX">{errorMessage}</div>
-  {/if}
 {/if}
 
 <script>
-  import { _, enabledProviders, PROVIDER_META, resolveSocialError } from '../../../main.js';
+  import { derived, get } from 'svelte/store';
+  import { _ as i18n } from '@panomc/sdk/utils/language';
+  import { pluginText } from '../../lib/text.js';
+  import { PROVIDER_META } from '../../lib/providers.js';
+  import { enabledProviders } from '../../lib/enabledProviders.js';
+  import { resolveSocialError } from '../../lib/errors.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
   import { onMount } from 'svelte';
-  import { get } from 'svelte/store';
+
+  const _ = pluginText(derived, i18n);
 
   let loadingProvider = $state(null);
   let errorMessage = $state('');
@@ -76,9 +108,9 @@
   onMount(async () => {
     if (get(enabledProviders).length > 0) return;
     try {
-      const res = await ApiUtil.get({ path: '/api/social-login/config' });
-      if (res?.result === 'ok' && Array.isArray(res.enabledProviders)) {
-        enabledProviders.set(res.enabledProviders);
+      const res = await api.get({ path: '/config' });
+      if (!res?.error && Array.isArray(res.items)) {
+        enabledProviders.set(res.items);
       }
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to load social config (client)', e);
@@ -89,15 +121,15 @@
     loadingProvider = provider;
     errorMessage = '';
     try {
-      const res = await fetch(`/api/social-login/${provider}/auth`);
+      const res = await fetch(`/api/plugins/pano-plugin-social-login/providers/${provider}/auth`);
       const body = await res.json();
 
-      if (body.result === 'ok' && body.redirectUrl) {
+      if (!body.error && body.redirectUrl) {
         window.location.href = body.redirectUrl;
         return;
       }
 
-      errorMessage = resolveSocialError($_, body.error);
+      errorMessage = resolveSocialError($_, body.error?.code);
     } catch (e) {
       console.error('[pano-plugin-social-login] Auth init failed', e);
       errorMessage = $_('error.generic');

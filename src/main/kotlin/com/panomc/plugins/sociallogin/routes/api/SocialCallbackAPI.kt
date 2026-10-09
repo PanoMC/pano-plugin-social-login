@@ -1,12 +1,15 @@
 package com.panomc.plugins.sociallogin.routes.api
 
 import com.panomc.platform.annotation.Endpoint
+import com.panomc.platform.error.BadRequest
+import com.panomc.platform.frontend.FrontendUrlMap
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Parameters
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Parameters
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 import java.net.URLEncoder
@@ -20,7 +23,20 @@ import java.net.URLEncoder
 class SocialCallbackAPI(
     private val plugin: SocialLoginPlugin
 ) : Api() {
-    override val paths = listOf(Path("/api/social-login/:provider/callback", RouteType.GET))
+    override val paths = listOf(Path("/providers/:provider/callback", RouteType.GET))
+
+    // The provider's browser arrives from a foreign origin (and an OAuth form_post callback is a foreign POST).
+    override val browserAccess: BrowserAccess = BrowserAccess.ANY_ORIGIN
+
+    override val doc = EndpointDoc(
+        summary = "The address registered at the provider: receives the authorization code and redirects the browser to the callback page of the front-end.",
+        tag = "auth",
+        binary = true
+    )
+
+    private val frontendUrlMap by lazy {
+        plugin.applicationContext.getBean(FrontendUrlMap::class.java)
+    }
 
     override fun getValidationHandler(schemaRepository: SchemaRepository): ValidationHandler =
         ValidationHandlerBuilder.create(schemaRepository)
@@ -34,7 +50,21 @@ class SocialCallbackAPI(
         val state = request.getParam("state")
         val error = request.getParam("error")
 
-        val redirectUrl = buildString {
+        // A provider always sends `code` and `state`, or `error`. Anything else is not a callback, and it is not
+        // forwarded to the front-end either (the redirect target is only ever a real provider answer).
+        if (error == null && (code.isNullOrBlank() || state.isNullOrBlank())) throw BadRequest("Missing code or state")
+
+        // Target `social-login.callback` of the front-end URL map (frontend-targets.json): the theme's page, the
+        // front-end's own, or Pano's page at /_pano/social-login.callback until one takes it over.
+        val params = linkedMapOf("provider" to providerKey)
+        if (error != null) {
+            params["error"] = error
+        } else {
+            params["code"] = code ?: ""
+            params["state"] = state ?: ""
+        }
+
+        val redirectUrl = frontendUrlMap.url("social-login.callback", params) ?: buildString {
             append("/social-login/callback?provider=").append(enc(providerKey))
             if (error != null) {
                 append("&error=").append(enc(error))

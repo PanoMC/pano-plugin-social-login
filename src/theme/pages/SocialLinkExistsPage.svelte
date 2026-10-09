@@ -1,21 +1,16 @@
 <style>
-  .social-link-container {
+  .social-login-social-link-exists-page {
     max-width: 480px;
     margin: 0 auto;
     padding: 2rem 1rem;
+    animation: social-login-fade-in 1s both;
   }
 
-  .social-link-card {
-    border-radius: 1rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-  }
-
-  .social-link-card .card-body {
+  .social-login-social-link-exists-page__body {
     padding: 2rem;
   }
 
-  .provider-badge {
+  .social-login-social-link-exists-page__badge {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -25,11 +20,20 @@
     font-weight: 500;
     font-size: 0.9rem;
   }
+
+  @keyframes social-login-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 </style>
 
-<div class="social-link-container animate__animated animate__fadeIn">
-  <div class="card social-link-card">
-    <div class="card-body">
+<div class="social-login-social-link-exists-page">
+  <div class="social-login-social-link-exists-page__card card">
+    <div class="social-login-social-link-exists-page__body card-body">
       {#if !isBrowser}
         <!-- URL params (token/provider/email) aren't available during SSR, so don't render the
              conditional content yet — the `!token` branch would otherwise flash the
@@ -38,11 +42,11 @@
           <div class="spinner-border text-secondary" role="status"></div>
         </div>
       {:else}
-      <h5 class="card-title text-center">{$_('link-existing.title')}</h5>
+      <h5 class="social-login-social-link-exists-page__title card-title text-center">{$_('link-existing.title')}</h5>
 
       {#if providerMeta}
         <div class="text-center mb-3">
-          <span class="provider-badge" style="background-color: {providerMeta.color};">
+          <span class="social-login-social-link-exists-page__badge" style="background-color: {providerMeta.color};">
             <ProviderIcon meta={providerMeta} />
             {providerMeta.name}
           </span>
@@ -54,18 +58,18 @@
       </p>
 
       {#if error}
-        <div class="alert alert-danger py-2" role="alert">{error}</div>
+        <div class="social-login-social-link-exists-page__alert alert alert-danger py-2" role="alert">{error}</div>
       {/if}
 
       {#if success}
-        <div class="alert alert-success py-2 text-center" role="alert">
+        <div class="social-login-social-link-exists-page__success alert alert-success py-2 text-center" role="alert">
           {$_('link-existing.success')}
         </div>
       {:else if !token}
-        <div class="alert alert-danger py-2" role="alert">
+        <div class="social-login-social-link-exists-page__invalid-flow-state alert alert-danger py-2" role="alert">
           {$_('link-existing.error.INVALID_FLOW_STATE')}
         </div>
-        <a href={sitePath('/login')} class="btn btn-secondary w-100 mt-2">{$_('link-existing.back-to-login')}</a>
+        <a href={sitePath('/login')} class="social-login-social-link-exists-page__action btn btn-secondary w-100 mt-2">{$_('link-existing.back-to-login')}</a>
       {:else}
         <form onsubmit={(e) => { e.preventDefault(); onSubmit(); }}>
           <div class="vstack gap-3">
@@ -73,7 +77,7 @@
               <input
                 type="text"
                 id="linkUsernameOrEmail"
-                class="form-control"
+                class="social-login-social-link-exists-page__input form-control"
                 disabled={loading}
                 bind:value={usernameOrEmail} />
               <label for="linkUsernameOrEmail">{$_('link-existing.username-label')}</label>
@@ -82,7 +86,7 @@
               <input
                 type="password"
                 id="linkPassword"
-                class="form-control"
+                class="social-login-social-link-exists-page__input-2 form-control"
                 disabled={loading}
                 bind:value={password} />
               <label for="linkPassword">{$_('link-existing.password-label')}</label>
@@ -100,7 +104,7 @@
             {/each}
             <button
               type="submit"
-              class="btn btn-lg btn-secondary w-100"
+              class="social-login-social-link-exists-page__submitting btn btn-lg btn-secondary w-100"
               class:disabled={loading || !canSubmit}
               disabled={loading || !canSubmit}>
               {#if loading}
@@ -119,11 +123,25 @@
   </div>
 </div>
 
+<script module>
+  // A page of the sign-in round trip; the build registers it (no registration code in the entry).
+  export const view = { path: '/social-login/link' };
+</script>
+
 <script>
-  import { _, finishLogin, PROVIDER_META, resolveSocialError, pano, sitePath } from '../../main.js';
+  import { derived } from 'svelte/store';
+  import { _ as i18n } from '@panomc/sdk/utils/language';
+  import { pluginText } from '../lib/text.js';
+  import { PROVIDER_META } from '../lib/providers.js';
+  import { resolveSocialError } from '../lib/errors.js';
+  import { finishLogin, sitePath } from '../lib/signIn.js';
+  import { getHost } from '../lib/host.js';
   import ProviderIcon from '../../components/ProviderIcon.svelte';
-  import { getContext, onMount } from 'svelte';
+  import { onMount } from 'svelte';
   import { goto } from '@panomc/sdk/svelte';
+
+  const _ = pluginText(derived, i18n);
+  const pano = getHost();
 
   const ERROR_KEYS = [
     'LOGIN_IS_INVALID',
@@ -135,13 +153,6 @@
   ];
 
   const isBrowser = typeof window !== 'undefined';
-
-  let session;
-  try {
-    session = getContext('session');
-  } catch (e) {
-    // SSR or no context — session stays undefined.
-  }
 
   let token = $state(null);
   let provider = $state('');
@@ -205,7 +216,7 @@
     error = null;
 
     try {
-      const res = await fetch('/api/social-login/link-existing', {
+      const res = await fetch('/api/plugins/pano-plugin-social-login/link-existing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -216,8 +227,8 @@
       });
       const body = await res.json();
 
-      if (body.result !== 'success' && body.result !== 'ok') {
-        error = resolveError(body.error);
+      if (body.error) {
+        error = resolveError(body.error.code);
         loading = false;
         return;
       }
@@ -234,7 +245,7 @@
       }
 
       success = true;
-      if ((await finishLogin(session, body.csrfToken)) === 'NO_PANEL_ACCESS') {
+      if ((await finishLogin(body.csrfToken)) === 'NO_PANEL_ACCESS') {
         success = false;
         loading = false;
         error = resolveSocialError($_, 'NO_PANEL_ACCESS');

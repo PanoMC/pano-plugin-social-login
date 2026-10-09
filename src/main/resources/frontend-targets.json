@@ -1,0 +1,5 @@
+{
+  "callback": { "path": "/social-login/callback", "fallback": true, "createsSession": true },
+  "link": "/social-login/link",
+  "complete": "/social-login/complete"
+}

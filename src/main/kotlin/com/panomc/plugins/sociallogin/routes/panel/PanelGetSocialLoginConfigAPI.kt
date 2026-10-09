@@ -12,7 +12,7 @@ import com.panomc.plugins.sociallogin.permission.ManageSocialLoginSettingsPermis
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 
 /**
@@ -24,7 +24,7 @@ import io.vertx.json.schema.SchemaRepository
 class PanelGetSocialLoginConfigAPI(
     private val plugin: SocialLoginPlugin
 ) : PanelApi() {
-    override val paths = listOf(Path("/api/panel/social-login/config", RouteType.GET))
+    override val paths = listOf(Path("/config", RouteType.GET))
 
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)

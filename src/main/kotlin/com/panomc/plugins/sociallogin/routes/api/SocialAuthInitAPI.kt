@@ -1,6 +1,7 @@
 package com.panomc.plugins.sociallogin.routes.api
 
 import com.panomc.platform.annotation.Endpoint
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.model.*
 import com.panomc.plugins.license.LicenseGuard
@@ -12,9 +13,10 @@ import com.panomc.plugins.sociallogin.service.PkceUtil
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Parameters
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Parameters
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
+import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
 /**
@@ -25,7 +27,14 @@ import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 class SocialAuthInitAPI(
     private val plugin: SocialLoginPlugin
 ) : Api() {
-    override val paths = listOf(Path("/api/social-login/:provider/auth", RouteType.GET))
+    override val paths = listOf(Path("/providers/:provider/auth", RouteType.GET))
+
+    override val doc = EndpointDoc(
+        summary = "Starts a sign-in or registration with a provider and answers the address of the provider's consent page.",
+        tag = "auth",
+        response = objectSchema().requiredProperty("redirectUrl", stringSchema()),
+        errors = listOf(NotFound::class, ProviderNotEnabled::class)
+    )
 
     private val oauthRegistry by lazy {
         plugin.pluginBeanContext.getBean(OAuthProviderRegistry::class.java)

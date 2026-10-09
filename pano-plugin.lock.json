@@ -1,0 +1,140 @@
+{
+  "controllers": {},
+  "format": 1,
+  "views": {
+    "social-login:ProviderIcon": {
+      "classes": [
+        "social-login-provider-icon"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {
+        "colored": {
+          "required": false
+        },
+        "meta": {
+          "required": false
+        }
+      },
+      "slots": []
+    },
+    "social-login:SocialAccountLinks": {
+      "classes": [
+        "social-login-social-account-links",
+        "social-login-social-account-links__action",
+        "social-login-social-account-links__link"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {
+        "data": {
+          "required": true
+        }
+      },
+      "slots": []
+    },
+    "social-login:SocialCallbackPage": {
+      "classes": [
+        "social-login-social-callback-page",
+        "social-login-social-callback-page__action",
+        "social-login-social-callback-page__body",
+        "social-login-social-callback-page__card",
+        "social-login-social-callback-page__error",
+        "social-login-social-callback-page__icon",
+        "social-login-social-callback-page__link-success",
+        "social-login-social-callback-page__title"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {},
+      "slots": []
+    },
+    "social-login:SocialCompletePage": {
+      "classes": [
+        "social-login-social-complete-page",
+        "social-login-social-complete-page__action",
+        "social-login-social-complete-page__body",
+        "social-login-social-complete-page__card",
+        "social-login-social-complete-page__error",
+        "social-login-social-complete-page__icon",
+        "social-login-social-complete-page__slot-mount",
+        "social-login-social-complete-page__title"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {},
+      "slots": []
+    },
+    "social-login:SocialLinkExistsPage": {
+      "classes": [
+        "social-login-social-link-exists-page",
+        "social-login-social-link-exists-page__action",
+        "social-login-social-link-exists-page__alert",
+        "social-login-social-link-exists-page__badge",
+        "social-login-social-link-exists-page__body",
+        "social-login-social-link-exists-page__card",
+        "social-login-social-link-exists-page__input",
+        "social-login-social-link-exists-page__input-2",
+        "social-login-social-link-exists-page__invalid-flow-state",
+        "social-login-social-link-exists-page__submitting",
+        "social-login-social-link-exists-page__success",
+        "social-login-social-link-exists-page__title"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {},
+      "slots": []
+    },
+    "social-login:SocialLinksProfileSidebar": {
+      "classes": [
+        "social-login-social-links-profile-sidebar",
+        "social-login-social-links-profile-sidebar__badge",
+        "social-login-social-links-profile-sidebar__body",
+        "social-login-social-links-profile-sidebar__header"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {
+        "data": {
+          "required": true
+        }
+      },
+      "slots": []
+    },
+    "social-login:SocialLoginButtons": {
+      "classes": [
+        "social-login-social-login-buttons",
+        "social-login-social-login-buttons__button",
+        "social-login-social-login-buttons__error",
+        "social-login-social-login-buttons__list"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {},
+      "slots": []
+    },
+    "social-login:SocialRegisterPage": {
+      "classes": [
+        "social-login-social-register-page",
+        "social-login-social-register-page__action",
+        "social-login-social-register-page__alert",
+        "social-login-social-register-page__badge",
+        "social-login-social-register-page__body",
+        "social-login-social-register-page__card",
+        "social-login-social-register-page__check",
+        "social-login-social-register-page__input",
+        "social-login-social-register-page__input-2",
+        "social-login-social-register-page__input-3",
+        "social-login-social-register-page__input-4",
+        "social-login-social-register-page__invalid-flow-state",
+        "social-login-social-register-page__submitting",
+        "social-login-social-register-page__success",
+        "social-login-social-register-page__title"
+      ],
+      "contract": 1,
+      "hooks": [],
+      "props": {},
+      "slots": []
+    }
+  }
+}

@@ -8,7 +8,7 @@ import com.panomc.platform.api.config.PluginConfig
  *
  * [redirectBaseUrl] is the public origin the OAuth callback is reachable at
  * (e.g. https://example.com). When empty, the platform `websiteUrl` is used as a fallback.
- * Per-provider redirect URI is then `{base}/api/social-login/{provider}/callback`.
+ * Per-provider redirect URI is then `{base}/api/plugins/pano-plugin-social-login/providers/{provider}/callback`.
  */
 class SocialLoginConfig(
     val redirectBaseUrl: String = "",

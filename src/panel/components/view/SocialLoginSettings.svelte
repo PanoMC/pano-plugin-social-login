@@ -271,7 +271,7 @@
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
   import { showToast } from '@panomc/sdk/toasts';
 
   export let addon;
@@ -380,8 +380,8 @@
     revealLoading = true;
     revealError = false;
     try {
-      const res = await ApiUtil.post({
-        path: '/api/panel/social-login/config/reveal-secret',
+      const res = await api.panel.post({
+        path: '/config/reveal-secret',
         body: { provider: revealKey, password: revealPassword },
       });
 
@@ -434,7 +434,7 @@
         }
       }
 
-      await ApiUtil.put({ path: '/api/panel/social-login/config', body });
+      await api.panel.put({ path: '/config', body });
 
       for (const key of providerKeys) {
         const provider = form.providers[key];

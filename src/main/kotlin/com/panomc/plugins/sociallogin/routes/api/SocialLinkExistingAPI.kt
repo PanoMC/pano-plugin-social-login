@@ -5,7 +5,11 @@ import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.api.event.AuthEventListener
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.error.LoginIsInvalid
+import com.panomc.platform.error.LoginUserIsBanned
 import com.panomc.platform.error.PluginDeniedLogin
+import com.panomc.platform.error.RateLimited
+import com.panomc.platform.schema.CoreSchemas
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
 import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
@@ -19,9 +23,10 @@ import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.RequestPredicate
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Bodies
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Bodies
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
+import io.vertx.json.schema.common.dsl.Schemas.enumSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
@@ -35,7 +40,22 @@ class SocialLinkExistingAPI(
     private val plugin: SocialLoginPlugin,
     private val socialLoginLinkDao: SocialLoginLinkDao
 ) : Api() {
-    override val paths = listOf(Path("/api/social-login/link-existing", RouteType.POST))
+    override val paths = listOf(Path("/link-existing", RouteType.POST))
+
+    override val doc = EndpointDoc(
+        summary = "Links a provider account to an existing account after the user proved it with the account's own credentials, then signs in (or asks for the step-up the sign-in needs).",
+        tag = "auth",
+        response = CoreSchemas.sessionFields(
+            objectSchema()
+                .requiredProperty("action", enumSchema("login", "complete-required"))
+                .optionalProperty("pendingToken", stringSchema())
+                .optionalProperty("provider", stringSchema())
+        ),
+        errors = listOf(
+            RateLimited::class, PluginDeniedLogin::class, InvalidFlowState::class, LoginIsInvalid::class,
+            EmailMismatch::class, SocialAccountAlreadyLinked::class, LoginUserIsBanned::class
+        )
+    )
 
     private val socialLoginService by lazy {
         plugin.pluginBeanContext.getBean(SocialLoginService::class.java)
@@ -149,8 +169,9 @@ class SocialLinkExistingAPI(
             )
         }
 
-        val csrfToken = socialLoginService.loginUser(userId, context, sqlClient)
+        // A cookie session answers `csrfToken`; a front-end with a stored key gets `sessionToken` + `expiresAt`.
+        val session = socialLoginService.loginUser(userId, context, sqlClient)
 
-        return Successful(mapOf("action" to "login", "csrfToken" to csrfToken))
+        return Successful(mapOf("action" to "login") + session)
     }
 }

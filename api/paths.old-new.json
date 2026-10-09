@@ -1,0 +1,114 @@
+[
+  {
+    "method": "GET",
+    "old": "/api/panel/social-login/config",
+    "new": "/api/plugins/pano-plugin-social-login/panel/config",
+    "relative": "/plugins/pano-plugin-social-login/panel/config",
+    "class": "PanelGetSocialLoginConfigAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/panel/PanelGetSocialLoginConfigAPI.kt"
+  },
+  {
+    "method": "PUT",
+    "old": "/api/panel/social-login/config",
+    "new": "/api/plugins/pano-plugin-social-login/panel/config",
+    "relative": "/plugins/pano-plugin-social-login/panel/config",
+    "class": "PanelUpdateSocialLoginConfigAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/panel/PanelUpdateSocialLoginConfigAPI.kt"
+  },
+  {
+    "method": "POST",
+    "old": "/api/panel/social-login/config/reveal-secret",
+    "new": "/api/plugins/pano-plugin-social-login/panel/config/reveal-secret",
+    "relative": "/plugins/pano-plugin-social-login/panel/config/reveal-secret",
+    "class": "PanelRevealSecretAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/panel/PanelRevealSecretAPI.kt"
+  },
+  {
+    "method": "GET",
+    "old": "/api/panel/social-login/player/:username/links",
+    "new": "/api/plugins/pano-plugin-social-login/panel/player/:username/links",
+    "relative": "/plugins/pano-plugin-social-login/panel/player/:username/links",
+    "class": "PanelGetPlayerSocialLinksAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/panel/PanelGetPlayerSocialLinksAPI.kt"
+  },
+  {
+    "method": "POST",
+    "old": "/api/panel/social-login/player/:username/unlink",
+    "new": "/api/plugins/pano-plugin-social-login/panel/player/:username/unlink",
+    "relative": "/plugins/pano-plugin-social-login/panel/player/:username/unlink",
+    "class": "PanelUnlinkPlayerSocialAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/panel/PanelUnlinkPlayerSocialAPI.kt"
+  },
+  {
+    "method": "GET",
+    "old": "/api/social-login/providers/:provider/auth",
+    "new": "/api/plugins/pano-plugin-social-login/providers/:provider/auth",
+    "relative": "/plugins/pano-plugin-social-login/providers/:provider/auth",
+    "class": "SocialAuthInitAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialAuthInitAPI.kt"
+  },
+  {
+    "method": "GET",
+    "old": "/api/social-login/providers/:provider/callback",
+    "new": "/api/plugins/pano-plugin-social-login/providers/:provider/callback",
+    "relative": "/plugins/pano-plugin-social-login/providers/:provider/callback",
+    "class": "SocialCallbackAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialCallbackAPI.kt"
+  },
+  {
+    "method": "GET",
+    "old": "/api/social-login/providers/:provider/link",
+    "new": "/api/plugins/pano-plugin-social-login/providers/:provider/link",
+    "relative": "/plugins/pano-plugin-social-login/providers/:provider/link",
+    "class": "SocialLinkInitAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialLinkInitAPI.kt"
+  },
+  {
+    "method": "GET",
+    "old": "/api/social-login/config",
+    "new": "/api/plugins/pano-plugin-social-login/config",
+    "relative": "/plugins/pano-plugin-social-login/config",
+    "class": "GetSocialLoginConfigPublicAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/GetSocialLoginConfigPublicAPI.kt"
+  },
+  {
+    "method": "POST",
+    "old": "/api/social-login/link-existing",
+    "new": "/api/plugins/pano-plugin-social-login/link-existing",
+    "relative": "/plugins/pano-plugin-social-login/link-existing",
+    "class": "SocialLinkExistingAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialLinkExistingAPI.kt"
+  },
+  {
+    "method": "GET",
+    "old": "/api/social-login/links",
+    "new": "/api/plugins/pano-plugin-social-login/links",
+    "relative": "/plugins/pano-plugin-social-login/links",
+    "class": "GetMySocialLinksAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/GetMySocialLinksAPI.kt"
+  },
+  {
+    "method": "POST",
+    "old": "/api/social-login/process",
+    "new": "/api/plugins/pano-plugin-social-login/process",
+    "relative": "/plugins/pano-plugin-social-login/process",
+    "class": "SocialProcessAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialProcessAPI.kt"
+  },
+  {
+    "method": "POST",
+    "old": "/api/social-login/register",
+    "new": "/api/plugins/pano-plugin-social-login/register",
+    "relative": "/plugins/pano-plugin-social-login/register",
+    "class": "SocialRegisterCompleteAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialRegisterCompleteAPI.kt"
+  },
+  {
+    "method": "POST",
+    "old": "/api/social-login/unlink",
+    "new": "/api/plugins/pano-plugin-social-login/unlink",
+    "relative": "/plugins/pano-plugin-social-login/unlink",
+    "class": "SocialUnlinkAPI",
+    "file": "src/main/kotlin/com/panomc/plugins/sociallogin/routes/api/SocialUnlinkAPI.kt"
+  }
+]

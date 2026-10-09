@@ -1,0 +1,21 @@
+{{pageTitle p.title}}
+<h1 class="pano-fb-title">{{p.heading}}</h1>
+{{#if valid}}
+<form class="pano-fb-form" data-pano-endpoint="{{endpoint}}" data-pano-auto data-pano-busy="{{t.common.working}}">
+  <p class="pano-fb-lead" data-pano-hide-on-done>{{p.lead}}</p>
+  <input type="hidden" name="provider" value="{{provider}}">
+  <input type="hidden" name="code" value="{{code}}">
+  <input type="hidden" name="state" value="{{state}}">
+  <p class="pano-fb-message" data-pano-message role="alert" hidden></p>
+  {{#if loginUrl}}<a class="pano-fb-button" href="{{loginUrl}}" data-pano-hide-on-done>{{t.common.signIn}}</a>{{/if}}
+  <div class="pano-fb-done" data-pano-done hidden>
+    <p class="pano-fb-lead">{{p.done}}</p>
+    <a class="pano-fb-button" href="{{homeUrl}}">{{p.continue}}</a>
+  </div>
+</form>
+{{else}}
+<div class="pano-fb-form">
+  <p class="pano-fb-message" role="alert">{{p.invalid}}</p>
+  {{#if loginUrl}}<a class="pano-fb-button" href="{{loginUrl}}">{{t.common.signIn}}</a>{{/if}}
+</div>
+{{/if}}

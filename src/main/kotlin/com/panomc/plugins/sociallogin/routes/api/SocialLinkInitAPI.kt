@@ -1,6 +1,8 @@
 package com.panomc.plugins.sociallogin.routes.api
 
 import com.panomc.platform.annotation.Endpoint
+import com.panomc.platform.error.NotLoggedIn
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.model.*
@@ -12,9 +14,10 @@ import com.panomc.plugins.sociallogin.service.PkceUtil
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Parameters
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Parameters
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
+import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
 /**
@@ -25,7 +28,14 @@ import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 class SocialLinkInitAPI(
     private val plugin: SocialLoginPlugin
 ) : LoggedInApi() {
-    override val paths = listOf(Path("/api/social-login/:provider/link", RouteType.GET))
+    override val paths = listOf(Path("/providers/:provider/link", RouteType.GET))
+
+    override val doc = EndpointDoc(
+        summary = "Starts attaching a provider account to the signed-in user and answers the address of the provider's consent page.",
+        tag = "links",
+        response = objectSchema().requiredProperty("redirectUrl", stringSchema()),
+        errors = listOf(NotLoggedIn::class, NotFound::class, ProviderNotEnabled::class)
+    )
 
     private val oauthRegistry by lazy {
         plugin.pluginBeanContext.getBean(OAuthProviderRegistry::class.java)

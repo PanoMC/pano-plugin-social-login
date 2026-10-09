@@ -50,7 +50,7 @@
 <script>
   import { _, PROVIDER_META } from '../../../main.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
 
   export let playerData;
   export let onHookRegister;
@@ -70,11 +70,11 @@
     if (!playerData?.username) return;
     loading = true;
     try {
-      const res = await ApiUtil.get({
-        path: `/api/panel/social-login/player/${encodeURIComponent(playerData.username)}/links`,
+      const res = await api.panel.get({
+        path: `/player/${encodeURIComponent(playerData.username)}/links`,
       });
       if (res && !res.error) {
-        links = Array.isArray(res.links) ? res.links : [];
+        links = Array.isArray(res.items) ? res.items : [];
       }
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to load links', e);
@@ -106,12 +106,12 @@
     loading = true;
     try {
       for (const provider of pendingUnlinks) {
-        const res = await ApiUtil.post({
-          path: `/api/panel/social-login/player/${encodeURIComponent(playerData.username)}/unlink`,
+        const res = await api.panel.post({
+          path: `/player/${encodeURIComponent(playerData.username)}/unlink`,
           body: { provider },
         });
         if (res && res.error) {
-          console.error('[pano-plugin-social-login] Unlink failed:', res.error);
+          console.error('[pano-plugin-social-login] Unlink failed:', res.error.code);
         }
       }
       links = links.filter((l) => !pendingUnlinks.includes(l.provider));

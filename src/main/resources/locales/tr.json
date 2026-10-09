@@ -15,7 +15,8 @@
     "TWO_FACTOR_REQUIRED": "İki adımlı doğrulama kodu gerekli.",
     "PLUGIN_DENIED_LOGIN": "Doğrulama başarısız. Lütfen doğrulamayı tamamlayıp tekrar deneyin.",
     "NO_PANEL_ACCESS": "Bu hesabın yönetim paneline erişimi yok.",
-    "NO_LINKED_ACCOUNT": "Bu giriş yöntemine bağlı bir hesap yok. Bunun yerine şifrenle giriş yap."
+    "NO_LINKED_ACCOUNT": "Bu giriş yöntemine bağlı bir hesap yok. Bunun yerine şifrenle giriş yap.",
+    "SOCIAL_LOGIN_FAILED": "Sağlayıcı girişi kabul etmedi. Lütfen tekrar deneyin."
   },
   "two-factor": {
     "title": "İki Adımlı Doğrulama",
@@ -158,5 +159,15 @@
   "activity-logs": {
     "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> Sosyal Giriş eklenti ayarlarını güncelledi.",
     "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b>, <b>{targetUsername}</b> oyuncusunun <b>{provider}</b> hesabının bağlantısını kesti."
+  },
+  "fallback": {
+    "callback": {
+      "title": "Giriş yapılıyor",
+      "heading": "Giriş yapılıyor",
+      "lead": "Sağlayıcı ile girişiniz tamamlanıyor.",
+      "done": "Tamamlandı. Bu sosyal hesap hesabınıza bağlıysa şimdi giriş yaptınız; değilse önce sitenin giriş sayfasında hesabı oluşturun veya bağlayın.",
+      "continue": "Devam et",
+      "invalid": "Bu giriş bağlantısı geçerli değil. Giriş sayfasından yeniden başlayın."
+    }
   }
 }

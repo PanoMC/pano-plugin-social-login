@@ -1,6 +1,8 @@
 package com.panomc.plugins.sociallogin.routes.api
 
 import com.panomc.platform.annotation.Endpoint
+import com.panomc.platform.error.NotLoggedIn
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.model.*
@@ -11,8 +13,8 @@ import com.panomc.plugins.sociallogin.error.SocialAccountNotLinked
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.RequestPredicate
 import io.vertx.ext.web.validation.ValidationHandler
-import io.vertx.ext.web.validation.builder.Bodies
-import io.vertx.ext.web.validation.builder.ValidationHandlerBuilder
+import com.panomc.platform.schema.dsl.Bodies
+import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
@@ -26,7 +28,14 @@ class SocialUnlinkAPI(
     private val plugin: SocialLoginPlugin,
     private val socialLoginLinkDao: SocialLoginLinkDao
 ) : LoggedInApi() {
-    override val paths = listOf(Path("/api/social-login/unlink", RouteType.POST))
+    override val paths = listOf(Path("/unlink", RouteType.POST))
+
+    override val doc = EndpointDoc(
+        summary = "Removes the signed-in user's link to a provider.",
+        tag = "links",
+        response = objectSchema(),
+        errors = listOf(NotLoggedIn::class, NotFound::class, SocialAccountNotLinked::class)
+    )
 
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)

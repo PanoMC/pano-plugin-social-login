@@ -1,21 +1,16 @@
 <style>
-  .social-register-container {
+  .social-login-social-register-page {
     max-width: 480px;
     margin: 0 auto;
     padding: 2rem 1rem;
+    animation: social-login-fade-in 1s both;
   }
 
-  .social-register-card {
-    border-radius: 1rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-  }
-
-  .social-register-card .card-body {
+  .social-login-social-register-page__body {
     padding: 2rem;
   }
 
-  .provider-badge {
+  .social-login-social-register-page__badge {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -25,11 +20,20 @@
     font-weight: 500;
     font-size: 0.9rem;
   }
+
+  @keyframes social-login-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 </style>
 
-<div class="social-register-container animate__animated animate__fadeIn">
-  <div class="card social-register-card">
-    <div class="card-body">
+<div class="social-login-social-register-page">
+  <div class="social-login-social-register-page__card card">
+    <div class="social-login-social-register-page__body card-body">
       {#if !isBrowser}
         <!-- URL params aren't available during SSR — without this gate the `!token` branch would
              flash INVALID_FLOW_STATE before CSR populates the form. -->
@@ -37,11 +41,11 @@
           <div class="spinner-border text-secondary" role="status"></div>
         </div>
       {:else}
-      <h5 class="card-title text-center">{$_('register.title')}</h5>
+      <h5 class="social-login-social-register-page__title card-title text-center">{$_('register.title')}</h5>
 
       {#if providerMeta}
         <div class="text-center mb-3">
-          <span class="provider-badge" style="background-color: {providerMeta.color};">
+          <span class="social-login-social-register-page__badge" style="background-color: {providerMeta.color};">
             <ProviderIcon meta={providerMeta} />
             {$_('register.via', { values: { provider: providerMeta.name } })}
           </span>
@@ -51,16 +55,16 @@
       <p class="text-muted text-center small">{$_('register.description')}</p>
 
       {#if error}
-        <div class="alert alert-danger py-2" role="alert">{error}</div>
+        <div class="social-login-social-register-page__alert alert alert-danger py-2" role="alert">{error}</div>
       {/if}
 
       {#if success}
-        <div class="alert alert-success py-2 text-center" role="alert">
+        <div class="social-login-social-register-page__success alert alert-success py-2 text-center" role="alert">
           {$_('register.success')}
         </div>
       {:else if !token}
-        <div class="alert alert-danger py-2" role="alert">{$_('register.error.INVALID_FLOW_STATE')}</div>
-        <a href="/login" class="btn btn-secondary w-100 mt-2">{$_('register.back-to-login')}</a>
+        <div class="social-login-social-register-page__invalid-flow-state alert alert-danger py-2" role="alert">{$_('register.error.INVALID_FLOW_STATE')}</div>
+        <a href="/login" class="social-login-social-register-page__action btn btn-secondary w-100 mt-2">{$_('register.back-to-login')}</a>
       {:else}
         <form onsubmit={(e) => { e.preventDefault(); onSubmit(); }}>
           <div class="vstack gap-3">
@@ -68,7 +72,7 @@
               <input
                 type="text"
                 id="socialUsername"
-                class="form-control"
+                class="social-login-social-register-page__input form-control"
                 disabled={loading}
                 maxlength="16"
                 bind:value={username} />
@@ -78,7 +82,7 @@
               <input
                 type="email"
                 id="socialEmail"
-                class="form-control"
+                class="social-login-social-register-page__input-2 form-control"
                 disabled={loading}
                 bind:value={email} />
               <label for="socialEmail">{$_('register.email-label')}</label>
@@ -87,7 +91,7 @@
               <input
                 type="password"
                 id="socialPassword"
-                class="form-control"
+                class="social-login-social-register-page__input-3 form-control"
                 disabled={loading}
                 bind:value={password} />
               <label for="socialPassword">{$_('register.password-label')}</label>
@@ -96,7 +100,7 @@
               <input
                 type="password"
                 id="socialPasswordRepeat"
-                class="form-control"
+                class="social-login-social-register-page__input-4 form-control"
                 disabled={loading}
                 bind:value={passwordRepeat} />
               <label for="socialPasswordRepeat">{$_('register.password-repeat-label')}</label>
@@ -106,7 +110,7 @@
                 <input
                   type="checkbox"
                   id="socialAgreement"
-                  class="form-check-input"
+                  class="social-login-social-register-page__check form-check-input"
                   disabled={loading}
                   bind:checked={agreement} />
                 <label class="form-check-label small" for="socialAgreement">
@@ -128,7 +132,7 @@
             {/each}
             <button
               type="submit"
-              class="btn btn-lg btn-secondary w-100"
+              class="social-login-social-register-page__submitting btn btn-lg btn-secondary w-100"
               class:disabled={loading || !canSubmit}
               disabled={loading || !canSubmit}>
               {#if loading}
@@ -146,12 +150,25 @@
   </div>
 </div>
 
+<script module>
+  // A page of the sign-in round trip; the build registers it (no registration code in the entry).
+  export const view = { path: '/social-login/register' };
+</script>
+
 <script>
-  import { _, applyLoginSession, PROVIDER_META, resolveSocialError, pano } from '../../main.js';
+  import { derived } from 'svelte/store';
+  import { _ as i18n } from '@panomc/sdk/utils/language';
+  import { pluginText } from '../lib/text.js';
+  import { PROVIDER_META } from '../lib/providers.js';
+  import { resolveSocialError } from '../lib/errors.js';
+  import { finishLogin } from '../lib/signIn.js';
+  import ApiUtil from '@panomc/sdk/utils/api';
+  import { getHost } from '../lib/host.js';
   import ProviderIcon from '../../components/ProviderIcon.svelte';
-  import { getContext, onMount } from 'svelte';
-  import { get } from 'svelte/store';
-  import { goto } from '@panomc/sdk/svelte';
+  import { onMount } from 'svelte';
+
+  const _ = pluginText(derived, i18n);
+  const pano = getHost();
 
   const ERROR_KEYS = [
     'REGISTER_USERNAME_NOT_AVAILABLE',
@@ -173,13 +190,6 @@
   ];
 
   const isBrowser = typeof window !== 'undefined';
-
-  let session;
-  try {
-    session = getContext('session');
-  } catch (e) {
-    // SSR or no context — session stays undefined.
-  }
 
   let token = $state(null);
   let provider = $state('');
@@ -214,10 +224,15 @@
     }
 
     // Mirror the theme register: only require the agreement when the site enables it.
-    const s = session ? get(session) : null;
-    if (s && s.siteInfo) {
-      requireAgreement = !!s.siteInfo.hasRegisterAgreement;
-      if (!requireAgreement) agreement = true;
+    // (The site info is read from the API: a view does not reach into the theme's session context, rule V5.)
+    try {
+      const info = await ApiUtil.get({ path: '/site-info' });
+      if (info && !info.error) {
+        requireAgreement = !!info.hasRegisterAgreement;
+        if (!requireAgreement) agreement = true;
+      }
+    } catch (e) {
+      // keep the strict default: the agreement stays required
     }
 
     // Run the theme's register lifecycle so register-content plugins (captcha, …) populate and
@@ -256,7 +271,7 @@
     error = null;
 
     try {
-      const res = await fetch('/api/social-login/register', {
+      const res = await fetch('/api/plugins/pano-plugin-social-login/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -270,15 +285,15 @@
       });
       const body = await res.json();
 
-      if (body.result !== 'success' && body.result !== 'ok') {
-        error = resolveError(body.error);
+      if (body.error) {
+        error = resolveError(body.error.code);
         loading = false;
         return;
       }
 
       success = true;
-      await applyLoginSession(session, body.csrfToken);
-      setTimeout(() => goto('/'), 1200);
+      // A full page load: the server renders the signed-in page from the cookies the answer set.
+      await finishLogin(body.csrfToken);
     } catch (e) {
       console.error('[pano-plugin-social-login] Register error:', e);
       error = $_('error.connection');

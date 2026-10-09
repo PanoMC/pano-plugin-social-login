@@ -1,15 +1,30 @@
+<style>
+  .social-login-social-links-profile-sidebar {
+    animation: social-login-fade-in 1s both;
+  }
+
+  @keyframes social-login-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
+
 {#if ownProfile && links.length > 0}
-  <div class="card mb-3 animate__animated animate__fadeIn">
-    <div class="card-header d-flex align-items-center gap-2">
+  <div class="social-login-social-links-profile-sidebar card mb-3">
+    <div class="social-login-social-links-profile-sidebar__header card-header d-flex align-items-center gap-2">
       <i class="fas fa-link text-secondary"></i>
       <span>{$_('profile-sidebar.title')}</span>
     </div>
-    <div class="card-body">
+    <div class="social-login-social-links-profile-sidebar__body card-body">
       <div class="d-flex flex-wrap gap-2">
         {#each links as link (link.provider)}
           {@const meta = PROVIDER_META[link.provider]}
           <span
-            class="badge d-inline-flex align-items-center gap-1"
+            class="social-login-social-links-profile-sidebar__badge badge d-inline-flex align-items-center gap-1"
             style="background-color: {meta?.color || '#555'};">
             <ProviderIcon {meta} />
             {meta?.name || link.provider}
@@ -21,7 +36,7 @@
 {/if}
 
 <script module>
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
 
   export async function load(event) {
     try {
@@ -34,10 +49,10 @@
         return { ownProfile: false, links: [] };
       }
 
-      const res = await ApiUtil.get({ path: '/api/social-login/links', request: event });
+      const res = await api.get({ path: '/links', request: event });
       return {
         ownProfile: true,
-        links: res && !res.error && Array.isArray(res.links) ? res.links : [],
+        links: res && !res.error && Array.isArray(res.items) ? res.items : [],
       };
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to load profile links', e);
@@ -47,8 +62,13 @@
 </script>
 
 <script>
-  import { _, PROVIDER_META } from '../../../main.js';
+  import { derived } from 'svelte/store';
+  import { _ as i18n } from '@panomc/sdk/utils/language';
+  import { pluginText } from '../../lib/text.js';
+  import { PROVIDER_META } from '../../lib/providers.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
+
+  const _ = pluginText(derived, i18n);
 
   let { data } = $props();
 

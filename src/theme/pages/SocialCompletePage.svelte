@@ -1,77 +1,132 @@
 <style>
-  .complete-container {
+  .social-login-social-complete-page {
     max-width: 480px;
     margin: 0 auto;
     padding: 2rem 1rem;
   }
 
-  .complete-card {
-    border-radius: 1rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+  .social-login-social-complete-page.is-animated {
+    animation: social-login-fade-in 1s both;
   }
 
-  .complete-card .card-body {
+  .social-login-social-complete-page__body {
     padding: 2rem;
   }
 
-  .status-icon {
+  .social-login-social-complete-page__icon {
     font-size: 3rem;
     margin-bottom: 1rem;
   }
 
-  .status-icon.success {
-    color: var(--bs-success);
+  .social-login-social-complete-page__icon.is-success {
+    animation: social-login-bounce-in 0.75s both;
   }
 
-  .status-icon.error {
-    color: var(--bs-danger);
-  }
-
-  .status-icon.loading {
-    color: var(--bs-primary);
+  .social-login-social-complete-page__icon.is-error {
+    animation: social-login-shake-x 1s both;
   }
 
   /* The slot mount is needed for plugin widgets (e.g. auth-guard's TwoFactorLoginGuard) to
-     register their global fetch interceptor — but we don't want their inline UI in our card. */
-  .slot-mount {
+     register their global fetch interceptor - but we don't want their inline UI in our card. */
+  .social-login-social-complete-page__slot-mount {
     display: none;
+  }
+
+  @keyframes social-login-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes social-login-bounce-in {
+    from,
+    20%,
+    40%,
+    60%,
+    80%,
+    to {
+      animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    0% {
+      opacity: 0;
+      transform: scale3d(0.3, 0.3, 0.3);
+    }
+    20% {
+      transform: scale3d(1.1, 1.1, 1.1);
+    }
+    40% {
+      transform: scale3d(0.9, 0.9, 0.9);
+    }
+    60% {
+      opacity: 1;
+      transform: scale3d(1.03, 1.03, 1.03);
+    }
+    80% {
+      transform: scale3d(0.97, 0.97, 0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale3d(1, 1, 1);
+    }
+  }
+
+  @keyframes social-login-shake-x {
+    from,
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+      transform: translate3d(-10px, 0, 0);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+      transform: translate3d(10px, 0, 0);
+    }
   }
 </style>
 
 {#if !isBrowser}
-  <div class="complete-container">
-    <div class="card complete-card">
-      <div class="card-body text-center">
-        <div class="status-icon loading">
+  <div class="social-login-social-complete-page">
+    <div class="social-login-social-complete-page__card card">
+      <div class="social-login-social-complete-page__body card-body text-center">
+        <div class="social-login-social-complete-page__icon is-loading">
           <div class="spinner-border" role="status"></div>
         </div>
       </div>
     </div>
   </div>
 {:else}
-  <div class="complete-container animate__animated animate__fadeIn">
-    <div class="card complete-card">
-      <div class="card-body text-center">
+  <div class="social-login-social-complete-page is-animated">
+    <div class="social-login-social-complete-page__card card">
+      <div class="social-login-social-complete-page__body card-body text-center">
         {#if pageState === 'loading'}
-          <div class="status-icon loading">
+          <div class="social-login-social-complete-page__icon is-loading">
             <div class="spinner-border" role="status"></div>
           </div>
           <h5>{$_('complete.loading')}</h5>
           <p class="text-muted small mb-0">{$_('complete.subtitle')}</p>
         {:else if pageState === 'success'}
-          <div class="status-icon success animate__animated animate__bounceIn">
+          <div class="social-login-social-complete-page__icon is-success">
             <i class="fas fa-check-circle"></i>
           </div>
-          <h5 class="text-success">{$_('callback.login-success')}</h5>
+          <h5 class="social-login-social-complete-page__title text-success">{$_('callback.login-success')}</h5>
           <p class="text-muted">{$_('callback.redirecting')}</p>
         {:else}
-          <div class="status-icon error animate__animated animate__shakeX">
+          <div class="social-login-social-complete-page__icon is-error">
             <i class="fas fa-times-circle"></i>
           </div>
-          <h5 class="text-danger">{$_('callback.error')}</h5>
+          <h5 class="social-login-social-complete-page__error text-danger">{$_('callback.error')}</h5>
           <p class="text-muted">{errorMessage}</p>
-          <a href={sitePath('/login')} class="btn btn-secondary">{$_('callback.back-to-login')}</a>
+          <a href={sitePath('/login')} class="social-login-social-complete-page__action btn btn-secondary">{$_('callback.back-to-login')}</a>
         {/if}
       </div>
     </div>
@@ -79,11 +134,11 @@
     <!--
       Mount the active theme's login-content slot items so plugin widgets (e.g. auth-guard's
       TwoFactorLoginGuard / CaptchaWidget) install their fetch interceptors and can pop their
-      challenge UI when /api/auth/complete-pending responds. Visually hidden — the modal-style
+      challenge UI when /api/v1/auth/complete-pending responds. Visually hidden — the modal-style
       widgets render their UI as overlays; inline widgets (captcha) aren't relevant here since the
       core completion endpoint doesn't run captcha hooks.
     -->
-    <div class="slot-mount" aria-hidden="true">
+    <div class="social-login-social-complete-page__slot-mount" aria-hidden="true">
       {#each contentItems as item (item.id)}
         {#if item.id !== 'login-form' && item.component && typeof item.component !== 'function'}
           {@const Field = item.component.default || item.component}
@@ -94,21 +149,27 @@
   </div>
 {/if}
 
+<script module>
+  // A page of the sign-in round trip; the build registers it (no registration code in the entry).
+  export const view = { path: '/social-login/complete' };
+</script>
+
 <script>
-  import { _, finishLogin, resolveSocialError, pano, sitePath } from '../../main.js';
-  import { getContext, onMount, tick } from 'svelte';
+  import { derived } from 'svelte/store';
+  import { _ as i18n } from '@panomc/sdk/utils/language';
+  import { pluginText } from '../lib/text.js';
+  import { resolveSocialError } from '../lib/errors.js';
+  import { finishLogin, sitePath } from '../lib/signIn.js';
+  import { getHost } from '../lib/host.js';
+  import { onMount, tick } from 'svelte';
+
+  const _ = pluginText(derived, i18n);
+  const pano = getHost();
 
   const isBrowser = typeof window !== 'undefined';
 
-  let session;
   let pageState = $state('loading');
   let errorMessage = $state('');
-
-  try {
-    session = getContext('session');
-  } catch (e) {
-    // SSR — session stays undefined.
-  }
 
   // Plugin-contributed login-content items (e.g. auth-guard's TwoFactorLoginGuard, captcha widget).
   // Populated by `pano.ui.auth.login.load()` in onMount; the explicit subscribe mirrors the pattern
@@ -151,14 +212,14 @@
     await tick();
 
     try {
-      const res = await fetch('/api/auth/complete-pending', {
+      const res = await fetch('/api/v1/auth/complete-pending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pendingToken: token }),
       });
       const body = await res.json();
 
-      if (body.result !== 'success' && body.result !== 'ok') {
+      if (body.error) {
         // PLUGIN_DENIED_LOGIN (e.g. 2FA cancelled) and other failures land here. Token-side errors
         // (expired/missing) come back as INVALID_TOKEN. Generic surface — challenge UIs would've
         // intercepted the response themselves before we got here on success.
@@ -168,7 +229,7 @@
       }
 
       pageState = 'success';
-      if ((await finishLogin(session, body.csrfToken)) === 'NO_PANEL_ACCESS') {
+      if ((await finishLogin(body.csrfToken)) === 'NO_PANEL_ACCESS') {
         pageState = 'error';
         errorMessage = resolveSocialError($_, 'NO_PANEL_ACCESS');
       }
@@ -180,17 +241,19 @@
   });
 
   function resolveError(body) {
-    if (body.error === 'PLUGIN_DENIED_LOGIN' && body.reason) {
+    const code = body.error?.code;
+    const reason = body.error?.details?.reason;
+    if (code === 'PLUGIN_DENIED_LOGIN' && reason) {
       // Translate plugin-i18n reason key if available; otherwise show the raw reason.
       try {
-        return $_(body.reason);
+        return $_(reason);
       } catch (e) {
-        return body.reason;
+        return reason;
       }
     }
-    if (body.error === 'INVALID_TOKEN') {
+    if (code === 'INVALID_TOKEN') {
       return $_('complete.invalid-token');
     }
-    return resolveSocialError($_, body.error);
+    return resolveSocialError($_, code);
   }
 </script>

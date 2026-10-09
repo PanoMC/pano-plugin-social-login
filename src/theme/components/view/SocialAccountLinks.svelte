@@ -1,4 +1,19 @@
-<div class="row pt-2 pb-3 mb-3 border-bottom animate__animated animate__fadeIn">
+<style>
+  .social-login-social-account-links {
+    animation: social-login-fade-in 1s both;
+  }
+
+  @keyframes social-login-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
+
+<div class="social-login-social-account-links row pt-2 pb-3 mb-3 border-bottom">
   <div class="col-md-4 col-form-label pb-2">
     <div class="d-flex align-items-center gap-2 mb-2">
       <i class="fas fa-link text-secondary"></i>
@@ -26,7 +41,7 @@
                 <span class="text-muted small text-truncate">{link.displayName}</span>
               {/if}
               <button
-                class="btn btn-link btn-sm p-0 ms-auto text-danger"
+                class="social-login-social-account-links__action btn btn-link btn-sm p-0 ms-auto text-danger"
                 type="button"
                 disabled={busyProvider === key}
                 onclick={() => unlink(key)}>
@@ -37,7 +52,7 @@
               </button>
             {:else}
               <button
-                class="btn btn-link btn-sm p-0 ms-auto"
+                class="social-login-social-account-links__link btn btn-link btn-sm p-0 ms-auto"
                 type="button"
                 disabled={busyProvider === key}
                 onclick={() => startLink(key)}>
@@ -55,7 +70,7 @@
 </div>
 
 <script module>
-  import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
 
   export async function load(event) {
     try {
@@ -64,10 +79,10 @@
       } = await event.parent();
       if (!user) return { links: [], enabledProviders: [] };
 
-      const res = await ApiUtil.get({ path: '/api/social-login/links', request: event });
+      const res = await api.get({ path: '/links', request: event });
       if (res && !res.error) {
         return {
-          links: Array.isArray(res.links) ? res.links : [],
+          links: Array.isArray(res.items) ? res.items : [],
           enabledProviders: Array.isArray(res.enabledProviders) ? res.enabledProviders : [],
         };
       }
@@ -79,9 +94,14 @@
 </script>
 
 <script>
-  // ApiUtil is declared in the module script above and is in scope here too.
-  import { _, PROVIDER_META } from '../../../main.js';
+  // api is declared in the module script above and is in scope here too.
+  import { derived } from 'svelte/store';
+  import { _ as i18n } from '@panomc/sdk/utils/language';
+  import { pluginText } from '../../lib/text.js';
+  import { PROVIDER_META } from '../../lib/providers.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
+
+  const _ = pluginText(derived, i18n);
 
   let { data } = $props();
 
@@ -98,7 +118,7 @@
   async function startLink(provider) {
     busyProvider = provider;
     try {
-      const res = await ApiUtil.get({ path: `/api/social-login/${provider}/link` });
+      const res = await api.get({ path: `/providers/${provider}/link` });
       if (res?.redirectUrl) {
         window.location.href = res.redirectUrl;
         return;
@@ -112,11 +132,11 @@
   async function unlink(provider) {
     busyProvider = provider;
     try {
-      const res = await ApiUtil.post({
-        path: '/api/social-login/unlink',
+      const res = await api.post({
+        path: '/unlink',
         body: { provider },
       });
-      if (res?.result === 'ok') {
+      if (!res?.error) {
         window.location.reload();
         return;
       }

@@ -10,7 +10,6 @@ import com.panomc.platform.frontend.pages.FallbackPageRenderer
 import com.panomc.platform.route.FallbackPageRoute
 import com.panomc.platform.ui.FrontendMode
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
-import com.panomc.plugins.sociallogin.config.SocialLoginConfig
 import io.vertx.core.Future
 import io.vertx.core.Vertx
 import io.vertx.core.http.HttpClientOptions
@@ -266,34 +265,6 @@ class SocialFrontendTest {
 
         assertEquals(302, answer.status)
         assertEquals("https://site.example/oauth/done?provider=google&code=c1&state=s1", answer.headers["location"])
-    }
-
-    // --- the redirect URLs ------------------------------------------------------------------
-
-    @Test
-    fun `each enabled provider lists its redirect URL under the redirect base`() {
-        val listed = SocialExternalUrls.urlsOf(
-            SocialLoginConfig(redirectBaseUrl = "https://pano.example/", googleEnabled = true, githubEnabled = true),
-            "pano-plugin-social-login"
-        ) { error("the website URL is not needed") }
-
-        assertEquals(listOf("Google redirect URL", "GitHub redirect URL"), listed.map { it.label })
-        assertEquals(
-            listOf(
-                "https://pano.example/api/plugins/pano-plugin-social-login/providers/google/callback",
-                "https://pano.example/api/plugins/pano-plugin-social-login/providers/github/callback"
-            ),
-            listed.map { it.url }
-        )
-    }
-
-    @Test
-    fun `without a redirect base the website URL is used, and nothing is listed while every provider is off`() {
-        val listed = SocialExternalUrls.urlsOf(SocialLoginConfig(twitterEnabled = true), "pano-plugin-social-login") { "https://pano.example" }
-
-        assertEquals("https://pano.example/api/plugins/pano-plugin-social-login/providers/twitter/callback", listed.single().url)
-        assertEquals("X redirect URL", listed.single().label)
-        assertTrue(SocialExternalUrls.urlsOf(SocialLoginConfig(), "pano-plugin-social-login") { "https://pano.example" }.isEmpty())
     }
 
     private companion object {

@@ -86,19 +86,23 @@ dependencies {
     if (bootstrap) {
         compileOnly(project(mapOf("path" to ":Pano")))
     } else {
-        compileOnly("com.github.panomc:pano:v1.0.0-alpha.463")
+        // Pano v1.0.0-alpha.547 by its commit: JitPack's build of the tag itself failed on a JDK download and stays cached.
+        compileOnly("com.github.panomc:pano:7417f3a3f0")
     }
 
     // Unit tests of the error classes, the endpoint docs and the built-in page (they extend or call the host's classes).
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.13.3")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.3")
+    // The tests use the host's classes: the umbrella build takes the project, a standalone build the same Pano as above.
     if (bootstrap) {
         testImplementation(project(mapOf("path" to ":Pano")))
-        testImplementation("io.vertx:vertx-web:${vertxVersion}")
-        testImplementation("io.vertx:vertx-lang-kotlin:${vertxVersion}")
-        testImplementation("com.google.code.gson:gson:${gsonVersion}")
+    } else {
+        testImplementation("com.github.panomc:pano:7417f3a3f0")
     }
+    testImplementation("io.vertx:vertx-web:${vertxVersion}")
+    testImplementation("io.vertx:vertx-lang-kotlin:${vertxVersion}")
+    testImplementation("com.google.code.gson:gson:${gsonVersion}")
 
     compileOnly(kotlin("stdlib-jdk8"))
     compileOnly(kotlin("reflect"))

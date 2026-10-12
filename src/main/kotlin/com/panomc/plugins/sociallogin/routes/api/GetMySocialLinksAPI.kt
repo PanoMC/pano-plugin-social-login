@@ -6,7 +6,6 @@ import com.panomc.platform.schema.CoreSchemas
 import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.model.*
-import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
 import com.panomc.plugins.sociallogin.service.OAuthProviderRegistry
@@ -53,8 +52,6 @@ class GetMySocialLinksAPI(
         ValidationHandlerBuilder.create(schemaRepository).build()
 
     override suspend fun handle(context: RoutingContext): Result {
-        LicenseGuard.assert(plugin)
-
         val sqlClient = getSqlClient()
         val userId = authProvider.getUserIdFromRoutingContext(context)
 

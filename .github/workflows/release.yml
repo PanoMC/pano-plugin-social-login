@@ -80,12 +80,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build
-        env:
-          # Premium plugins fetch their license verification public key from the
-          # license server at build time. `dev` branch hits the dev license API,
-          # `main` (production releases) hits prod. Without this, the gradle
-          # script would silently build the plugin as FREE.
-          PANO_LICENSE_SERVER: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
         run: |
           ./gradlew build \
             -Pversion=${{ needs.get-next-version.outputs.new_tag_version }} \

@@ -25,7 +25,6 @@ import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
 import com.panomc.platform.util.RegisterUtil
 import com.panomc.platform.util.TextUtil
-import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -98,8 +97,6 @@ class SocialRegisterCompleteAPI(
 
     override suspend fun handle(context: RoutingContext): Result {
         socialLoginService.enforceAuthRateLimit(context)
-        LicenseGuard.assert(plugin)
-
         val body = context.body().asJsonObject()
         val pendingToken = body.getString("pendingToken")
         val username = TextUtil.stripWhitespace(body.getString("username") ?: "")

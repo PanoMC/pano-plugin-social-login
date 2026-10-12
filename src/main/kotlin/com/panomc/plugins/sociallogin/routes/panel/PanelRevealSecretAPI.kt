@@ -6,7 +6,6 @@ import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.model.*
-import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialLoginConfig
 import com.panomc.plugins.sociallogin.config.SocialProvider
@@ -56,8 +55,6 @@ class PanelRevealSecretAPI(
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
-        LicenseGuard.assert(plugin)
-
         authProvider.requirePermission(ManageSocialLoginSettingsPermission(), context)
 
         val body = context.body().asJsonObject()

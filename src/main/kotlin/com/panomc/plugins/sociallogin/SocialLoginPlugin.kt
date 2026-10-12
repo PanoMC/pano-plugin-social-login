@@ -4,19 +4,12 @@ import com.panomc.platform.api.PanoPlugin
 import com.panomc.platform.api.PluginDatabaseManager
 import com.panomc.platform.api.config.PluginConfigManager
 import com.panomc.platform.setup.SetupManager
-import com.panomc.plugins.license.PluginLicenseClient
 import com.panomc.plugins.sociallogin.config.SocialLoginConfig
 import com.panomc.plugins.sociallogin.service.OAuthProviderRegistry
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.core.Vertx
 
 class SocialLoginPlugin : PanoPlugin() {
-    /**
-     * Premium plugin: enforce a panomc.com license at startup. No-op for free builds
-     * (empty panoLicensePublicKey in gradle.properties).
-     */
-    private val licenseClient by lazy { PluginLicenseClient(this) }
-
     private val pluginDatabaseManager by lazy {
         applicationContext.getBean(PluginDatabaseManager::class.java)
     }
@@ -28,15 +21,9 @@ class SocialLoginPlugin : PanoPlugin() {
     private var isInitialized = false
 
     override suspend fun onStart() {
-        licenseClient.requireValidLicense()
-
         logger.info("Starting...")
 
         startPlugin()
-    }
-
-    override suspend fun verifyLicense() {
-        licenseClient.requireValidLicense()
     }
 
     internal suspend fun startPlugin() {

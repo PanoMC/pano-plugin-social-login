@@ -11,7 +11,6 @@ import com.panomc.platform.schema.CoreSchemas
 import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
 import com.panomc.platform.util.TextUtil
-import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -96,8 +95,6 @@ class SocialProcessAPI(
 
     override suspend fun handle(context: RoutingContext): Result {
         socialLoginService.enforceAuthRateLimit(context)
-        LicenseGuard.assert(plugin)
-
         val body = context.body().asJsonObject()
         val providerKey = body.getString("provider")
         val code = body.getString("code")

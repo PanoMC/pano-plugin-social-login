@@ -11,7 +11,6 @@ import com.panomc.platform.error.RateLimited
 import com.panomc.platform.schema.CoreSchemas
 import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
-import com.panomc.plugins.license.LicenseGuard
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -84,8 +83,6 @@ class SocialLinkExistingAPI(
 
     override suspend fun handle(context: RoutingContext): Result {
         socialLoginService.enforceAuthRateLimit(context)
-        LicenseGuard.assert(plugin)
-
         val body = context.body().asJsonObject()
         val pendingToken = body.getString("pendingToken")
         val usernameOrEmail = body.getString("usernameOrEmail")

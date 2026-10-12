@@ -9,7 +9,6 @@
     "NOT_LOGGED_IN": "Bunu yapmak için giriş yapmış olmanız gerekir.",
     "RATE_LIMITED": "Çok fazla deneme. Lütfen biraz bekleyip tekrar deneyin.",
     "NOT_FOUND": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
-    "LICENSE_REQUIRED": "Bu giriş yöntemi şu anda kullanılamıyor.",
     "access_denied": "Giriş iptal edildi.",
     "TWO_FACTOR_INVALID_CODE": "Kod hatalı veya süresi dolmuş. Lütfen tekrar deneyin.",
     "TWO_FACTOR_REQUIRED": "İki adımlı doğrulama kodu gerekli.",

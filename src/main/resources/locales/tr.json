@@ -58,6 +58,11 @@
     "back-to-login": "Giriş Sayfasına Dön",
     "no-code": "Yetkilendirme kodu alınamadı."
   },
+  "complete": {
+    "loading": "Giriş tamamlanıyor...",
+    "subtitle": "Hesabınızın gerektirdiği ek doğrulamayı tamamlayın.",
+    "invalid-token": "Bu giriş bağlantısının süresi dolmuş. Lütfen baştan tekrar deneyin."
+  },
   "register": {
     "title": "Hesabını Oluştur",
     "via": "{provider} ile",

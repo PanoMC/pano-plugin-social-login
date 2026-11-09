@@ -60,7 +60,8 @@ class SocialProcessAPI(
         ),
         errors = listOf(
             NotFound::class, NotLoggedIn::class, RateLimited::class, ProviderNotEnabled::class, InvalidFlowState::class,
-            SocialLoginFailed::class, SocialAccountAlreadyLinked::class, LoginUserIsBanned::class
+            SocialLoginFailed::class, SocialAccountAlreadyLinked::class, LoginUserIsBanned::class,
+            com.panomc.platform.error.IpIsBanned::class, com.panomc.platform.error.LoginEmailNotVerified::class
         )
     )
 

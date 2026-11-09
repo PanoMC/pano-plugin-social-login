@@ -6,7 +6,10 @@ import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.config.ConfigManager
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.db.model.User
+import com.panomc.platform.error.IpIsBanned
+import com.panomc.platform.error.LoginEmailNotVerified
 import com.panomc.platform.error.LoginUserIsBanned
+import com.panomc.platform.util.TextUtil
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.error.RateLimited
 import com.panomc.platform.route.ApiPaths
@@ -202,10 +205,31 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         context: RoutingContext,
         sqlClient: SqlClient
     ): AuthEventListener.LoginDecision.Deny? {
+        checkCanSignIn(user, context, sqlClient)
+
         return authProvider.runOnBeforeLogin(user, context, sqlClient) as? AuthEventListener.LoginDecision.Deny
     }
 
     // --- Session issuance ---
+
+    /**
+     * The rules of the password sign-in that do not depend on the password: no banned user, no banned address,
+     * and a confirmed e-mail when the site requires one. Runs before the step-up hooks and before a session.
+     */
+    suspend fun checkCanSignIn(user: User, context: RoutingContext, sqlClient: SqlClient) {
+        if (BanUtil.isBanned(user)) {
+            throw LoginUserIsBanned(extras = mapOf("reason" to user.banMessage, "until" to user.bannedUntil))
+        }
+
+        val activeIpBan = databaseManager.bannedIpDao.getActiveByIp(authProvider.getRemoteIP(context), sqlClient)
+        if (activeIpBan != null) {
+            throw IpIsBanned(extras = mapOf("reason" to activeIpBan.reason, "bannedUntil" to activeIpBan.bannedUntil))
+        }
+
+        if (platformConfigManager.config.auth.requireEmailVerification && !user.emailVerified) {
+            throw LoginEmailNotVerified(extras = mapOf("email" to (user.email?.let { TextUtil.maskEmail(it) } ?: "")))
+        }
+    }
 
     /**
      * Issues a login session for [userId]: rejects banned users, opens the session through the host's
@@ -215,9 +239,7 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
     suspend fun loginUser(userId: Long, context: RoutingContext, sqlClient: SqlClient): Map<String, Any?> {
         val user = databaseManager.userDao.getById(userId, sqlClient) ?: throw NotFound()
 
-        if (BanUtil.isBanned(user)) {
-            throw LoginUserIsBanned(extras = mapOf("reason" to user.banMessage, "until" to user.bannedUntil))
-        }
+        checkCanSignIn(user, context, sqlClient)
 
         val session = authProvider.issueSession(user.username, context, sqlClient)
         databaseManager.userDao.updateLastLoginDate(userId, sqlClient)

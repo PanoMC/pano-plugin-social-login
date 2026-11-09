@@ -3,7 +3,12 @@ package com.panomc.plugins.sociallogin.routes.api
 import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.api.event.AuthEventListener
+import com.panomc.platform.config.ConfigManager
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.mail.MailManager
+import com.panomc.platform.mail.templates.ActivationMail
+import com.panomc.platform.token.ActivationTokenType
+import com.panomc.platform.token.TokenProvider
 import com.panomc.platform.error.IpIsBanned
 import com.panomc.platform.error.PasswordEmpty
 import com.panomc.platform.error.PasswordTooLong
@@ -57,7 +62,12 @@ class SocialRegisterCompleteAPI(
     override val doc = EndpointDoc(
         summary = "Creates the account for a new social sign-in (user name, e-mail and password from the register form), links the provider account and signs in.",
         tag = "auth",
-        response = CoreSchemas.sessionFields(objectSchema().requiredProperty("action", stringSchema())),
+        response = CoreSchemas.sessionFields(
+            objectSchema()
+                .requiredProperty("action", stringSchema())
+                .optionalProperty("emailVerificationRequired", booleanSchema())
+                .optionalProperty("email", stringSchema())
+        ),
         errors = listOf(
             RateLimited::class, PluginDeniedLogin::class, InvalidFlowState::class, SocialAccountAlreadyLinked::class,
             IpIsBanned::class, RegisterUsernameEmpty::class, RegisterEmailEmpty::class, PasswordEmpty::class,
@@ -77,6 +87,18 @@ class SocialRegisterCompleteAPI(
 
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)
+    }
+
+    private val platformConfigManager by lazy {
+        plugin.applicationContext.getBean(ConfigManager::class.java)
+    }
+
+    private val tokenProvider by lazy {
+        plugin.applicationContext.getBean(TokenProvider::class.java)
+    }
+
+    private val mailManager by lazy {
+        plugin.applicationContext.getBean(MailManager::class.java)
     }
 
     override fun getValidationHandler(schemaRepository: SchemaRepository): ValidationHandler =
@@ -138,7 +160,8 @@ class SocialRegisterCompleteAPI(
         val userId = RegisterUtil.register(databaseManager, sqlClient, username, email, password, remoteIP)
 
         // Trust the email only when the provider verified it AND it is the one being registered.
-        if (socialEmailVerified && socialEmail != null && socialEmail.equals(email, ignoreCase = true)) {
+        val emailVerified = socialEmailVerified && socialEmail != null && socialEmail.equals(email, ignoreCase = true)
+        if (emailVerified) {
             databaseManager.userDao.makeEmailVerifiedById(userId, sqlClient)
         }
 
@@ -153,6 +176,26 @@ class SocialRegisterCompleteAPI(
             ),
             sqlClient
         )
+
+        // The same after-register hooks and webhook as the core registration.
+        authProvider.runOnAfterRegister(databaseManager.userDao.getById(userId, sqlClient)!!, sqlClient)
+
+        // Like the core registration: an address the provider did not confirm must be confirmed by mail first
+        // when the site requires it. No session until then.
+        if (!emailVerified && platformConfigManager.config.auth.requireEmailVerification) {
+            tokenProvider.invalidateTokensBySubjectAndType(userId.toString(), ActivationTokenType, sqlClient)
+            val (activationToken, expireDate) = tokenProvider.generateToken(userId.toString(), ActivationTokenType)
+            tokenProvider.saveToken(activationToken, userId.toString(), ActivationTokenType, expireDate, sqlClient)
+            mailManager.sendTemplate(sqlClient, userId, ActivationMail(activationToken, username, email))
+
+            return Successful(
+                mapOf(
+                    "action" to "verify-email",
+                    "emailVerificationRequired" to true,
+                    "email" to TextUtil.maskEmail(email)
+                )
+            )
+        }
 
         // A cookie session answers `csrfToken`; a front-end with a stored key gets `sessionToken` + `expiresAt`.
         val session = socialLoginService.loginUser(userId, context, sqlClient)

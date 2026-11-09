@@ -76,6 +76,7 @@
     "submit": "Hesap Oluştur",
     "submitting": "Hesap oluşturuluyor...",
     "success": "Hesap oluşturuldu! Yönlendiriliyorsunuz...",
+    "verify-email": "Hesap oluşturuldu. {email} adresine bir onay bağlantısı gönderdik: adresini onayla, sonra giriş yap.",
     "back-to-login": "Giriş Sayfasına Dön",
     "error": {
       "REGISTER_USERNAME_NOT_AVAILABLE": "Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir ad seçin.",

@@ -76,6 +76,7 @@
     "submit": "Create Account",
     "submitting": "Creating account...",
     "success": "Account created! Redirecting...",
+    "verify-email": "Account created. We sent a confirmation link to {email}: confirm your address, then sign in.",
     "back-to-login": "Back to Login",
     "error": {
       "REGISTER_USERNAME_NOT_AVAILABLE": "This username is already taken. Please choose another one.",

@@ -58,7 +58,12 @@
         <div class="social-login-social-register-page__alert alert alert-danger py-2" role="alert">{error}</div>
       {/if}
 
-      {#if success}
+      {#if verifyEmail}
+        <div class="social-login-social-register-page__verify-email alert alert-success py-2 text-center" role="alert">
+          {$_('register.verify-email', { values: { email: verifyEmail } })}
+        </div>
+        <a href="/login" class="social-login-social-register-page__action btn btn-secondary w-100 mt-2">{$_('register.back-to-login')}</a>
+      {:else if success}
         <div class="social-login-social-register-page__success alert alert-success py-2 text-center" role="alert">
           {$_('register.success')}
         </div>
@@ -202,6 +207,8 @@
   let loading = $state(false);
   let error = $state(null);
   let success = $state(false);
+  // Set when the site wants the e-mail confirmed first: the account exists, no session yet.
+  let verifyEmail = $state('');
 
   // Plugin-contributed register fields (e.g. auth-guard captcha) injected into "register-content".
   let contentItems = $state([]);
@@ -287,6 +294,12 @@
 
       if (body.error) {
         error = resolveError(body.error.code);
+        loading = false;
+        return;
+      }
+
+      if (body.action === 'verify-email') {
+        verifyEmail = body.email || email;
         loading = false;
         return;
       }

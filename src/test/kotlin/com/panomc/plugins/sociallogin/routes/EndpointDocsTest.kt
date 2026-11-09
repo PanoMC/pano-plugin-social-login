@@ -76,6 +76,7 @@ class EndpointDocsTest {
     @Test
     fun `the register and link-existing answers match the session shape`() {
         assertEquals(emptyList<String>(), SocialRegisterCompleteAPI(plugin, dao).doc!!.check(JsonObject().put("action", "login").put("csrfToken", "c")))
+        assertEquals(emptyList<String>(), SocialRegisterCompleteAPI(plugin, dao).doc!!.check(JsonObject().put("action", "verify-email").put("emailVerificationRequired", true).put("email", "a***@b.c")))
         assertEquals(
             emptyList<String>(),
             SocialLinkExistingAPI(plugin, dao).doc!!.check(JsonObject().put("action", "complete-required").put("pendingToken", "t").put("provider", "google"))

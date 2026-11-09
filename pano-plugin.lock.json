@@ -129,7 +129,8 @@
         "social-login-social-register-page__invalid-flow-state",
         "social-login-social-register-page__submitting",
         "social-login-social-register-page__success",
-        "social-login-social-register-page__title"
+        "social-login-social-register-page__title",
+        "social-login-social-register-page__verify-email"
       ],
       "contract": 1,
       "hooks": [],

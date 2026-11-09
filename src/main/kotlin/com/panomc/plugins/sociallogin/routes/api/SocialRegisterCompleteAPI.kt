@@ -137,7 +137,8 @@ class SocialRegisterCompleteAPI(
             throw PluginDeniedLogin(it.errorKey, it.extras)
         }
 
-        val payload = socialLoginService.consumePendingRegistration(pendingToken, sqlClient)
+        // Only read here: a typo, a taken name or a short password must not use up the flow.
+        val payload = socialLoginService.peekPendingRegistration(pendingToken, sqlClient)
             ?: throw InvalidFlowState()
 
         val provider = SocialProvider.fromKey(payload.getString("provider")) ?: throw InvalidFlowState()
@@ -156,26 +157,43 @@ class SocialRegisterCompleteAPI(
             throw SocialAccountAlreadyLinked()
         }
 
-        val remoteIP = authProvider.getRemoteIP(context)
-        val userId = RegisterUtil.register(databaseManager, sqlClient, username, email, password, remoteIP)
+        if (databaseManager.userDao.existsByUsername(username, sqlClient)) {
+            throw RegisterUsernameNotAvailable()
+        }
+        if (databaseManager.userDao.isEmailExists(email, sqlClient)) {
+            throw RegisterEmailNotAvailable()
+        }
+
+        // The form is fine: now the flow is used up (one time, a concurrent submit loses here).
+        socialLoginService.consumePendingRegistration(pendingToken, sqlClient) ?: throw InvalidFlowState()
 
         // Trust the email only when the provider verified it AND it is the one being registered.
         val emailVerified = socialEmailVerified && socialEmail != null && socialEmail.equals(email, ignoreCase = true)
-        if (emailVerified) {
-            databaseManager.userDao.makeEmailVerifiedById(userId, sqlClient)
-        }
 
-        socialLoginService.addLinkUnique(
-            SocialLoginLink(
-                userId = userId,
-                provider = provider.key,
-                providerUserId = providerUserId,
-                email = socialEmail,
-                displayName = displayName,
-                avatarUrl = avatarUrl
-            ),
-            sqlClient
-        )
+        val remoteIP = authProvider.getRemoteIP(context)
+
+        // Account, verified mark and link together: a lost race on the link leaves no account behind.
+        val userId = socialLoginService.inTransaction(sqlClient) { tx ->
+            val newUserId = RegisterUtil.register(databaseManager, tx, username, email, password, remoteIP)
+
+            if (emailVerified) {
+                databaseManager.userDao.makeEmailVerifiedById(newUserId, tx)
+            }
+
+            socialLoginService.addLinkUnique(
+                SocialLoginLink(
+                    userId = newUserId,
+                    provider = provider.key,
+                    providerUserId = providerUserId,
+                    email = socialEmail,
+                    displayName = displayName,
+                    avatarUrl = avatarUrl
+                ),
+                tx
+            )
+
+            newUserId
+        }
 
         // The same after-register hooks and webhook as the core registration.
         authProvider.runOnAfterRegister(databaseManager.userDao.getById(userId, sqlClient)!!, sqlClient)

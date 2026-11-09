@@ -26,7 +26,11 @@ import com.panomc.plugins.sociallogin.db.model.SocialLoginState
 import com.panomc.plugins.sociallogin.error.SocialAccountAlreadyLinked
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.RoutingContext
+import io.vertx.kotlin.coroutines.coAwait
+import io.vertx.sqlclient.Pool
 import io.vertx.sqlclient.SqlClient
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * Shared backend logic for the social login flows: redirect-URI resolution, the short-lived
@@ -183,12 +187,44 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         return token
     }
 
+    /** Reads a pending registration without using it up, so a form with a mistake can be sent again. */
+    suspend fun peekPendingRegistration(token: String, sqlClient: SqlClient): JsonObject? {
+        val row = socialLoginStateDao.getByToken(token, sqlClient) ?: return null
+        if (row.kind != SocialLoginState.Kind.PENDING_REGISTRATION.name) return null
+        if (row.expiresAt < System.currentTimeMillis()) return null
+        return JsonObject(row.payload)
+    }
+
     suspend fun consumePendingRegistration(token: String, sqlClient: SqlClient): JsonObject? {
         val row = socialLoginStateDao.getByToken(token, sqlClient) ?: return null
         if (!socialLoginStateDao.deleteByToken(token, sqlClient)) return null
         if (row.kind != SocialLoginState.Kind.PENDING_REGISTRATION.name) return null
         if (row.expiresAt < System.currentTimeMillis()) return null
         return JsonObject(row.payload)
+    }
+
+    /**
+     * Runs [block] in one database transaction when [sqlClient] is a pool (rolled back if it throws), so the
+     * steps inside either all happen or none do. Any other client runs the block as is.
+     */
+    suspend fun <T> inTransaction(sqlClient: SqlClient, block: suspend (SqlClient) -> T): T {
+        val pool = sqlClient as? Pool ?: return block(sqlClient)
+        val connection = pool.connection.coAwait()
+
+        try {
+            val transaction = connection.begin().coAwait()
+
+            try {
+                val result = block(connection)
+                transaction.commit().coAwait()
+                return result
+            } catch (e: Throwable) {
+                withContext(NonCancellable) { runCatching { transaction.rollback().coAwait() } }
+                throw e
+            }
+        } finally {
+            withContext(NonCancellable) { runCatching { connection.close().coAwait() } }
+        }
     }
 
     // --- Step-up auth: delegate to the core AuthEventListener hooks ---

@@ -85,8 +85,8 @@ dependencies {
     if (bootstrap) {
         compileOnly(project(":Pano"))
     } else {
-        // Pano v1.0.0-alpha.547 by its commit: JitPack's build of the tag itself failed on a JDK download and stays cached.
-        compileOnly("com.github.panomc:pano:7417f3a3f0")
+        // Pano v1.2.0 by its commit (530b40781c): the security fixes use its mail API (MailManager.sendTemplate).
+        compileOnly("com.github.panomc:pano:530b40781c")
     }
 
     // Unit tests of the error classes, the endpoint docs and the built-in page (they extend or call the host's classes).
@@ -97,7 +97,7 @@ dependencies {
     if (bootstrap) {
         testImplementation(project(":Pano"))
     } else {
-        testImplementation("com.github.panomc:pano:7417f3a3f0")
+        testImplementation("com.github.panomc:pano:530b40781c")
     }
     testImplementation("io.vertx:vertx-web:${vertxVersion}")
     testImplementation("io.vertx:vertx-lang-kotlin:${vertxVersion}")

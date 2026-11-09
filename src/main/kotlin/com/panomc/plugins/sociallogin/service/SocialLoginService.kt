@@ -113,6 +113,7 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         provider: SocialProvider,
         codeVerifier: String?,
         userId: Long?,
+        context: RoutingContext,
         sqlClient: SqlClient
     ): String {
         val token = CSRFTokenGenerator.nextToken() + CSRFTokenGenerator.nextToken()
@@ -121,6 +122,8 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
             .put("provider", provider.key)
         if (codeVerifier != null) payload.put("codeVerifier", codeVerifier)
         if (userId != null) payload.put("userId", userId)
+        // Bound to the browser that starts the round trip (see OAuthBrowserBinding).
+        OAuthBrowserBinding.issue(context, OAUTH_STATE_TTL_MS)?.let { payload.put("browser", it) }
 
         socialLoginStateDao.deleteExpired(sqlClient)
         socialLoginStateDao.add(
@@ -135,15 +138,21 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         return token
     }
 
-    /** Looks up, deletes (one-time) and validates an OAuth state row. Returns its payload or null. */
-    suspend fun consumeOAuthState(token: String, sqlClient: SqlClient): JsonObject? {
+    /**
+     * Looks up, deletes (one-time) and validates an OAuth state row. Returns its payload, or null when it is
+     * unknown, used, expired, or this request is not from the browser that started the round trip.
+     */
+    suspend fun consumeOAuthState(token: String, context: RoutingContext, sqlClient: SqlClient): JsonObject? {
         val row = socialLoginStateDao.getByToken(token, sqlClient) ?: return null
         // Atomic single-use: only the caller whose DELETE actually removed the row proceeds.
         // A concurrent request for the same token loses the race and gets null.
         if (!socialLoginStateDao.deleteByToken(token, sqlClient)) return null
         if (row.kind != SocialLoginState.Kind.OAUTH_STATE.name) return null
         if (row.expiresAt < System.currentTimeMillis()) return null
-        return JsonObject(row.payload)
+        val payload = JsonObject(row.payload)
+        if (!OAuthBrowserBinding.matches(context, payload.getString("browser"))) return null
+        if (payload.getString("browser") != null) OAuthBrowserBinding.clear(context)
+        return payload
     }
 
     // --- Pending registration: a verified social profile awaiting a username/password form ---

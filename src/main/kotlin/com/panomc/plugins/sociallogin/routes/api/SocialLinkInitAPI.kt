@@ -69,7 +69,7 @@ class SocialLinkInitAPI(
         val codeVerifier = if (oauthProvider.usesPkce) PkceUtil.generateVerifier() else null
         val codeChallenge = codeVerifier?.let { PkceUtil.challengeFor(it) }
 
-        val state = socialLoginService.createOAuthState("link", provider, codeVerifier, userId, sqlClient)
+        val state = socialLoginService.createOAuthState("link", provider, codeVerifier, userId, context, sqlClient)
         val redirectUri = socialLoginService.resolveRedirectUri(provider)
         val authUrl = oauthProvider.buildAuthorizationUrl(redirectUri, state, codeChallenge)
 

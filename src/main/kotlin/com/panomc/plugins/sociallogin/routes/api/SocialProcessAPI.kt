@@ -108,7 +108,7 @@ class SocialProcessAPI(
 
         val sqlClient = getSqlClient()
 
-        val statePayload = socialLoginService.consumeOAuthState(stateToken, sqlClient)
+        val statePayload = socialLoginService.consumeOAuthState(stateToken, context, sqlClient)
             ?: throw InvalidFlowState()
 
         // The state must have been issued for this same provider.
@@ -129,7 +129,7 @@ class SocialProcessAPI(
         }
 
         return when (intent) {
-            "link" -> handleLink(context, provider, profile, sqlClient)
+            "link" -> handleLink(context, provider, profile, statePayload.getLong("userId"), sqlClient)
             else -> handleAuth(context, provider, profile, sqlClient)
         }
     }
@@ -138,6 +138,7 @@ class SocialProcessAPI(
         context: RoutingContext,
         provider: SocialProvider,
         profile: SocialProfile,
+        stateUserId: Long?,
         sqlClient: SqlClient
     ): Result {
         if (!authProvider.isLoggedIn(context)) {
@@ -145,6 +146,11 @@ class SocialProcessAPI(
         }
 
         val userId = authProvider.getUserIdFromRoutingContext(context)
+
+        // A link only lands on the account that started it.
+        if (stateUserId == null || stateUserId != userId) {
+            throw InvalidFlowState()
+        }
 
         val existingByAccount =
             socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, profile.providerUserId, sqlClient)

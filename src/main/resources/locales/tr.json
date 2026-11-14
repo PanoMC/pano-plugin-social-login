@@ -117,13 +117,19 @@
   },
   "plugin-settings": {
     "title": "Sosyal Giriş Ayarları",
-    "setup-guide-title": "Sosyal Giriş nasıl kurulur",
+    "setup-guide-title": "Sosyal Giriş Nasıl Kurulur",
     "setup-guide-desc": "Bir sağlayıcıyı etkinleştirin, ardından o sağlayıcının geliştirici konsolunda bir OAuth uygulaması oluşturun. Client ID ve Client Secret değerlerini buraya kopyalayın ve aşağıda gösterilen Yönlendirme URI'sini sağlayıcı konsolunda kaydedin.",
     "redirect-base-url": "Yönlendirme Temel URL'si",
     "redirect-base-url-desc": "Sitenizin genel adresi (örn. https://example.com). Platform site URL'sini kullanmak için boş bırakın.",
     "client-id": "İstemci Kimliği (Client ID)",
     "client-secret": "İstemci Gizli Anahtarı (Client Secret)",
     "client-secret-new-placeholder": "Yeni gizli anahtar girin",
+    "reveal-title": "İstemci gizli anahtarı gösterilsin mi?",
+    "reveal-secret": "Gizli Anahtarı Göster",
+    "edit-secret": "Gizli Anahtarı Düzenle",
+    "toggle-secret-visibility": "Gizli Anahtar Görünürlüğünü Değiştir",
+    "cancel-edit": "Düzenlemeyi İptal Et",
+    "copy-redirect-uri": "Yönlendirme URI'sini Kopyala",
     "reveal-desc": "İstemci gizli anahtarını görüntülemek için parolanızı girin.",
     "reveal-password-placeholder": "Parolanız",
     "reveal-cancel": "İptal",
@@ -132,11 +138,11 @@
     "redirect-uri": "Yönlendirme URI'si",
     "redirect-uri-desc": "Bu URI'yi sağlayıcının geliştirici konsoluna birebir kaydedin.",
     "guide": {
-      "heading": "Kurulum rehberi",
+      "heading": "Kurulum Rehberi",
       "intro": "{provider} sağlayıcısını etkinleştirmek için geliştirici konsolunda bir OAuth uygulaması oluşturup Client ID ve Secret değerlerini buraya kopyalayın. Adım adım:",
       "scopes-label": "Gerekli izinler (scope)",
-      "open-console": "Geliştirici konsolunu aç",
-      "open-docs": "Resmi dokümantasyon"
+      "open-console": "Geliştirici Konsolunu Aç",
+      "open-docs": "Resmi Dokümantasyon"
     },
     "guide-notes": {
       "google": "Google Cloud Console'u açın ve bir proje oluşturun veya seçin.\n'APIs & Services → OAuth consent screen' bölümünü yapılandırın (User type 'External', uygulama adı, destek e-postası).\n'APIs & Services → Credentials → Create credentials → OAuth client ID' yolunu izleyip uygulama türü 'Web application' seçin.\n'Authorized redirect URIs' altına aşağıda gösterilen Yönlendirme URI'sini ekleyin (birebir aynı olmalı) ve Create deyin.\nGörünen Client ID ve Client Secret değerlerini yukarıdaki alanlara kopyalayın.",

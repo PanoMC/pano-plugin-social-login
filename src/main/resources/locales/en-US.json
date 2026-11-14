@@ -117,13 +117,19 @@
   },
   "plugin-settings": {
     "title": "Social Login Settings",
-    "setup-guide-title": "How to set up Social Login",
+    "setup-guide-title": "How to Set Up Social Login",
     "setup-guide-desc": "Enable a provider, then create an OAuth application in that provider's developer console. Copy the Client ID and Client Secret here, and register the Redirect URI shown below in the provider console.",
     "redirect-base-url": "Redirect Base URL",
     "redirect-base-url-desc": "Public origin of your site (e.g. https://example.com). Leave empty to use the platform website URL.",
     "client-id": "Client ID",
     "client-secret": "Client Secret",
     "client-secret-new-placeholder": "Enter new client secret",
+    "reveal-title": "Reveal the client secret?",
+    "reveal-secret": "Reveal Secret",
+    "edit-secret": "Edit Secret",
+    "toggle-secret-visibility": "Toggle Secret Visibility",
+    "cancel-edit": "Cancel Edit",
+    "copy-redirect-uri": "Copy Redirect URI",
     "reveal-desc": "Enter your password to view the client secret.",
     "reveal-password-placeholder": "Your password",
     "reveal-cancel": "Cancel",
@@ -132,11 +138,11 @@
     "redirect-uri": "Redirect URI",
     "redirect-uri-desc": "Register this exact URI in the provider's developer console.",
     "guide": {
-      "heading": "Setup guide",
+      "heading": "Setup Guide",
       "intro": "To enable {provider}, create an OAuth app in its developer console and copy the Client ID & Secret here. Step by step:",
       "scopes-label": "Required scopes",
-      "open-console": "Open developer console",
-      "open-docs": "Official documentation"
+      "open-console": "Open Developer Console",
+      "open-docs": "Official Documentation"
     },
     "guide-notes": {
       "google": "Open the Google Cloud Console and create or select a project.\nGo to 'APIs & Services → OAuth consent screen' and configure it (User type 'External', app name, support email).\nGo to 'APIs & Services → Credentials → Create credentials → OAuth client ID' and pick application type 'Web application'.\nUnder 'Authorized redirect URIs' add the Redirect URI shown below (it must match exactly), then click Create.\nCopy the shown Client ID and Client Secret into the fields above.",

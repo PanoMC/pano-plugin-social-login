@@ -4,234 +4,270 @@
       {$_('plugin-settings.title')}
     </div>
     <div class="card-body">
-      <div class="alert alert-info mb-4">
-        <h6 class="alert-heading mb-2">
-          <i class="fas fa-info-circle me-1"></i>
-          {$_('plugin-settings.setup-guide-title')}
-        </h6>
-        <p class="mb-0 small">{$_('plugin-settings.setup-guide-desc')}</p>
+      <div class="alert alert-info d-flex align-items-start mb-4" role="alert">
+        <i class="fas fa-circle-info me-3 mt-1" aria-hidden="true"></i>
+        <div>
+          <h5 class="alert-heading mb-2">{$_('plugin-settings.setup-guide-title')}</h5>
+          <div>{$_('plugin-settings.setup-guide-desc')}</div>
+        </div>
       </div>
 
       <!-- Redirect base URL -->
       <div class="row mb-4">
-        <label class="col-md-6 col-form-label" for="redirectBaseUrl">
-          <span class="d-block">{$_('plugin-settings.redirect-base-url')}</span>
-          <small>{$_('plugin-settings.redirect-base-url-desc')}</small>
-        </label>
+        <div class="col-md-6">
+          <label class="col-form-label pb-0 d-block" for="redirectBaseUrl">
+            {$_('plugin-settings.redirect-base-url')}
+          </label>
+          <div class="form-text text-body-secondary mt-0" id="redirectBaseUrlHint">
+            {$_('plugin-settings.redirect-base-url-desc')}
+          </div>
+        </div>
         <div class="col-md-6">
           <input
             type="text"
             class="form-control"
             id="redirectBaseUrl"
+            aria-describedby="redirectBaseUrlHint"
             placeholder={originPlaceholder}
             bind:value={form.redirectBaseUrl} />
         </div>
       </div>
 
       <!-- Per-provider configuration -->
-      {#each providerKeys as key (key)}
-        {@const provider = form.providers[key]}
-        {@const meta = PROVIDER_META[key]}
-        {#if provider}
-          <div class="border rounded p-3 mb-3">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <ProviderIcon {meta} colored />
-              <span class="fw-bold">{provider.displayName}</span>
-              <div class="form-check form-switch ms-auto mb-0">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  id="{key}Enabled"
-                  bind:checked={form.providers[key].enabled} />
+      <div class="accordion mb-4">
+        {#each providerKeys as key (key)}
+          {@const provider = form.providers[key]}
+          {@const meta = PROVIDER_META[key]}
+          {#if provider}
+            <div class="accordion-item">
+              <div class="d-flex align-items-center">
+                <h2 class="accordion-header flex-grow-1" id="{key}Heading">
+                  <button
+                    type="button"
+                    class="accordion-button"
+                    class:collapsed={expandedProvider !== key}
+                    disabled={!provider.enabled}
+                    aria-expanded={expandedProvider === key}
+                    aria-controls="{key}Collapse"
+                    on:click={() => (expandedProvider = expandedProvider === key ? null : key)}>
+                    <span class="me-2"><ProviderIcon {meta} colored /></span>
+                    {provider.displayName}
+                  </button>
+                </h2>
+                <div class="form-check form-switch mx-3 mb-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="{key}Enabled"
+                    bind:checked={form.providers[key].enabled}
+                    on:change={(event) => {
+                      if (event.currentTarget.checked) expandedProvider = key;
+                      else if (expandedProvider === key) expandedProvider = null;
+                    }} />
+                  <label class="visually-hidden" for="{key}Enabled">{provider.displayName}</label>
+                </div>
               </div>
-            </div>
-
-            {#if provider.enabled}
-              <div class="animate__animated animate__fadeIn mt-3">
-                <!-- Per-provider setup guide -->
-                <div class="alert alert-secondary small mb-3">
-                  <div class="fw-bold mb-2">
-                    <i class="fas fa-book me-1"></i>{$_('plugin-settings.guide.heading')}
-                  </div>
-                  <div class="mb-1">
-                    {$_('plugin-settings.guide.intro', { values: { provider: provider.displayName } })}
-                  </div>
-                  <ol class="mb-2 ps-3">
-                    {#each $_(`plugin-settings.guide-notes.${key}`).split('\n') as step, i (i)}
-                      <li>{step}</li>
-                    {/each}
-                  </ol>
-                  {#if meta?.scopes}
-                    <div class="mb-2">
-                      <span class="fw-semibold">{$_('plugin-settings.guide.scopes-label')}:</span>
-                      <code>{meta.scopes}</code>
-                    </div>
-                  {/if}
-                  <div class="d-flex flex-wrap gap-2">
-                    {#if meta?.consoleUrl}
-                      <a
-                        class="btn btn-sm btn-outline-primary"
-                        href={meta.consoleUrl}
-                        target="_blank"
-                        rel="noopener noreferrer">
-                        <i class="fas fa-arrow-up-right-from-square me-1"></i>{$_(
-                          'plugin-settings.guide.open-console',
-                        )}
-                      </a>
-                    {/if}
-                    {#if meta?.docsUrl}
-                      <a
-                        class="btn btn-sm btn-outline-secondary"
-                        href={meta.docsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer">
-                        <i class="fas fa-book me-1"></i>{$_('plugin-settings.guide.open-docs')}
-                      </a>
-                    {/if}
-                  </div>
-                </div>
-
-                <!-- Client ID -->
-                <div class="row mb-2">
-                  <label class="col-md-4 col-form-label" for="{key}ClientId">
-                    {$_('plugin-settings.client-id')}
-                  </label>
-                  <div class="col-md-8">
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="{key}ClientId"
-                      bind:value={form.providers[key].clientId} />
-                  </div>
-                </div>
-
-                <!-- Client Secret -->
-                <div class="row mb-2">
-                  <label class="col-md-4 col-form-label" for="{key}ClientSecret">
-                    {$_('plugin-settings.client-secret')}
-                  </label>
-                  <div class="col-md-8">
-                    {#if provider.hasSecret && !provider.revealed && !provider.secretTouched}
-                      <!-- Secret is saved but not revealed -->
-                      <div class="d-flex align-items-center gap-2">
-                        <input type="password" class="form-control" value="••••••••••••" disabled />
-                        <button
-                          class="btn btn-outline-secondary btn-sm"
-                          type="button"
-                          aria-label="Reveal secret"
-                          on:click={() => openRevealModal(key)}>
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button
-                          class="btn btn-outline-primary btn-sm"
-                          type="button"
-                          aria-label="Edit secret"
-                          on:click={() => editSecret(key)}>
-                          <i class="fas fa-edit"></i>
-                        </button>
+              <div
+                id="{key}Collapse"
+                class="accordion-collapse collapse"
+                class:show={expandedProvider === key}
+                aria-labelledby="{key}Heading">
+                <div class="accordion-body">
+                  {#if provider.enabled}
+                    <!-- Per-provider setup guide -->
+                    <div class="alert alert-info d-flex align-items-start mb-3" role="alert">
+                      <i class="fas fa-circle-info me-3 mt-1" aria-hidden="true"></i>
+                      <div>
+                        <h5 class="alert-heading mb-2">{$_('plugin-settings.guide.heading')}</h5>
+                        <div class="mb-1">
+                          {$_('plugin-settings.guide.intro', { values: { provider: provider.displayName } })}
+                        </div>
+                        <ol class="mb-2 ps-3">
+                          {#each $_(`plugin-settings.guide-notes.${key}`).split('\n') as step, i (i)}
+                            <li>{step}</li>
+                          {/each}
+                        </ol>
+                        {#if meta?.scopes}
+                          <div>
+                            <strong>{$_('plugin-settings.guide.scopes-label')}:</strong>
+                            <code>{meta.scopes}</code>
+                          </div>
+                        {/if}
+                        <div class="d-flex flex-wrap gap-3 mt-2">
+                          {#if meta?.consoleUrl}
+                            <a
+                              class="alert-link"
+                              href={meta.consoleUrl}
+                              target="_blank"
+                              rel="noopener noreferrer">
+                              {$_('plugin-settings.guide.open-console')}
+                            </a>
+                          {/if}
+                          {#if meta?.docsUrl}
+                            <a
+                              class="alert-link"
+                              href={meta.docsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer">
+                              {$_('plugin-settings.guide.open-docs')}
+                            </a>
+                          {/if}
+                        </div>
                       </div>
-                    {:else}
-                      <!-- Revealed, or entering a new secret -->
-                      <div class="input-group">
+                    </div>
+
+                    <!-- Client ID -->
+                    <div class="row mb-2">
+                      <label class="col-md-4 col-form-label" for="{key}ClientId">
+                        {$_('plugin-settings.client-id')}
+                      </label>
+                      <div class="col-md-8">
                         <input
-                          type={provider.showSecret ? 'text' : 'password'}
+                          type="text"
                           class="form-control"
-                          id="{key}ClientSecret"
-                          placeholder={provider.hasSecret
-                            ? $_('plugin-settings.client-secret-new-placeholder')
-                            : ''}
-                          bind:value={form.providers[key].clientSecret}
-                          on:input={() => markSecretTouched(key)} />
-                        <button
-                          class="btn btn-outline-secondary"
-                          type="button"
-                          aria-label="Toggle secret visibility"
-                          on:click={() => toggleShowSecret(key)}>
-                          <i class="fas {provider.showSecret ? 'fa-eye-slash' : 'fa-eye'}"></i>
-                        </button>
-                        {#if provider.hasSecret}
-                          <button
-                            class="btn btn-outline-danger"
-                            type="button"
-                            aria-label="Cancel edit"
-                            on:click={() => cancelEditSecret(key)}>
-                            <i class="fas fa-times"></i>
-                          </button>
+                          id="{key}ClientId"
+                          bind:value={form.providers[key].clientId} />
+                      </div>
+                    </div>
+
+                    <!-- Client Secret -->
+                    <div class="row mb-2">
+                      <label class="col-md-4 col-form-label" for="{key}ClientSecret">
+                        {$_('plugin-settings.client-secret')}
+                      </label>
+                      <div class="col-md-8">
+                        {#if provider.hasSecret && !provider.revealed && !provider.secretTouched}
+                          <!-- Secret is saved but not revealed -->
+                          <div class="d-flex align-items-center gap-2">
+                            <input type="password" class="form-control" id="{key}ClientSecret" value="••••••••••••" disabled />
+                            <button
+                              class="btn btn-outline-primary btn-sm"
+                              type="button"
+                              title={$_('plugin-settings.reveal-secret')}
+                              aria-label={$_('plugin-settings.reveal-secret')}
+                              on:click={() => openRevealModal(key)}>
+                              <i class="fas fa-eye"></i>
+                            </button>
+                            <button
+                              class="btn btn-outline-primary btn-sm"
+                              type="button"
+                              title={$_('plugin-settings.edit-secret')}
+                              aria-label={$_('plugin-settings.edit-secret')}
+                              on:click={() => editSecret(key)}>
+                              <i class="fas fa-edit"></i>
+                            </button>
+                          </div>
+                        {:else}
+                          <!-- Revealed, or entering a new secret -->
+                          <div class="input-group">
+                            <input
+                              type={provider.showSecret ? 'text' : 'password'}
+                              class="form-control"
+                              id="{key}ClientSecret"
+                              placeholder={provider.hasSecret
+                                ? $_('plugin-settings.client-secret-new-placeholder')
+                                : ''}
+                              bind:value={form.providers[key].clientSecret}
+                              on:input={() => markSecretTouched(key)} />
+                            <button
+                              class="btn btn-outline-primary"
+                              type="button"
+                              title={$_('plugin-settings.toggle-secret-visibility')}
+                              aria-label={$_('plugin-settings.toggle-secret-visibility')}
+                              on:click={() => toggleShowSecret(key)}>
+                              <i class="fas {provider.showSecret ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                            </button>
+                            {#if provider.hasSecret}
+                              <button
+                                class="btn btn-outline-danger"
+                                type="button"
+                                title={$_('plugin-settings.cancel-edit')}
+                                aria-label={$_('plugin-settings.cancel-edit')}
+                                on:click={() => cancelEditSecret(key)}>
+                                <i class="fas fa-times"></i>
+                              </button>
+                            {/if}
+                          </div>
                         {/if}
                       </div>
-                    {/if}
-                  </div>
-                </div>
-
-                <!-- Redirect URI (read-only, copy to provider console) -->
-                <div class="row">
-                  <label class="col-md-4 col-form-label" for="{key}RedirectUri">
-                    {$_('plugin-settings.redirect-uri')}
-                  </label>
-                  <div class="col-md-8">
-                    <div class="input-group">
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="{key}RedirectUri"
-                        value={provider.redirectUri}
-                        readonly />
-                      <button
-                        class="btn btn-outline-secondary"
-                        type="button"
-                        aria-label="Copy redirect URI"
-                        on:click={() => copyToClipboard(provider.redirectUri)}>
-                        <i class="fas fa-copy"></i>
-                      </button>
                     </div>
-                    <small class="d-block mt-1 text-muted">
-                      {$_('plugin-settings.redirect-uri-desc')}
-                    </small>
-                  </div>
+
+                    <!-- Redirect URI (read-only, copy to provider console) -->
+                    <div class="row">
+                      <label class="col-md-4 col-form-label" for="{key}RedirectUri">
+                        {$_('plugin-settings.redirect-uri')}
+                      </label>
+                      <div class="col-md-8">
+                        <div class="input-group">
+                          <input
+                            type="text"
+                            class="form-control"
+                            id="{key}RedirectUri"
+                            value={provider.redirectUri}
+                            readonly />
+                          <button
+                            class="btn btn-outline-primary"
+                            type="button"
+                            title={$_('plugin-settings.copy-redirect-uri')}
+                            aria-label={$_('plugin-settings.copy-redirect-uri')}
+                            on:click={() => copyToClipboard(provider.redirectUri)}>
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                        <small class="d-block mt-1 text-body-secondary">
+                          {$_('plugin-settings.redirect-uri-desc')}
+                        </small>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               </div>
-            {/if}
-          </div>
-        {/if}
-      {/each}
+            </div>
+          {/if}
+        {/each}
+      </div>
 
       <!-- Reveal secret modal (password-gated) -->
-      <div aria-hidden="true" class="modal fade" bind:this={revealModalElement} role="dialog" tabindex="-1">
+      <div aria-hidden="true" aria-labelledby="revealSecretTitle" class="modal fade" bind:this={revealModalElement} role="dialog" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered" role="dialog">
           <div class="modal-content">
             <form on:submit|preventDefault={revealSecret}>
               <div class="modal-body text-center">
                 <div class="pb-3">
-                  <i class="fas fa-lock fa-3x d-block m-auto text-warning"></i>
+                  <i class="fas fa-lock fa-3x d-block m-auto" aria-hidden="true"></i>
                 </div>
-                {$_('plugin-settings.reveal-desc')}
-                <input
-                  class="form-control mt-3"
-                  placeholder={$_('plugin-settings.reveal-password-placeholder')}
-                  type="password"
-                  bind:value={revealPassword}
-                  bind:this={revealPasswordInput}
-                  class:border-danger={revealError} />
-                {#if revealError}
-                  <small class="text-danger d-block mt-2">{$_('plugin-settings.reveal-error')}</small>
-                {/if}
+                <h5 class="mb-2" id="revealSecretTitle">{$_('plugin-settings.reveal-title')}</h5>
+                <div class="text-body-secondary">{$_('plugin-settings.reveal-desc')}</div>
+                <div class="text-start mt-3">
+                  <input
+                    class="form-control"
+                    placeholder={$_('plugin-settings.reveal-password-placeholder')}
+                    aria-label={$_('plugin-settings.reveal-password-placeholder')}
+                    type="password"
+                    bind:value={revealPassword}
+                    bind:this={revealPasswordInput}
+                    class:border-danger={revealError} />
+                  {#if revealError}
+                    <small class="text-danger d-block mt-2">{$_('plugin-settings.reveal-error')}</small>
+                  {/if}
+                </div>
               </div>
               <div class="modal-footer flex-nowrap">
                 <button
-                  class="btn btn-link col-6 m-0"
+                  class="btn btn-link text-decoration-none col-6 m-0"
                   type="button"
                   on:click={closeRevealModal}
                   disabled={revealLoading}>
                   {$_('plugin-settings.reveal-cancel')}
                 </button>
                 <button
-                  class="btn btn-warning col-6 m-0"
+                  class="btn btn-primary col-6 m-0"
                   type="submit"
                   disabled={!revealPassword || revealLoading}>
-                  {$_('plugin-settings.reveal-confirm')}
                   {#if revealLoading}
-                    <i class="fas fa-sync fa-spin ms-2"></i>
+                    <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                   {/if}
+                  {$_('plugin-settings.reveal-confirm')}
                 </button>
               </div>
             </form>
@@ -243,7 +279,7 @@
       <div class="row mb-3">
         <label class="col-md-6 col-form-label" for="debugLogging">
           <span class="d-block">{$_('plugin-settings.debug-logging')}</span>
-          <small>{$_('plugin-settings.debug-logging-desc')}</small>
+          <small class="text-body-secondary">{$_('plugin-settings.debug-logging-desc')}</small>
         </label>
         <div class="col-md-6 d-flex align-items-center">
           <div class="form-check form-switch">
@@ -303,6 +339,7 @@
   }
 
   let form = buildForm();
+  let expandedProvider = providerKeys.find((key) => form.providers[key]?.enabled) || null;
   let saving = false;
 
   function snapshot(f) {

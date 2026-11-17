@@ -64,7 +64,8 @@ class InstagramOAuthService(
 
         val tokenBody = tokenResponse.bodyAsJsonObject()
         if (tokenBody.containsKey("error_type") || tokenBody.containsKey("error")) {
-            throw RuntimeException(
+            throw OAuthExchangeException(
+                tokenBody.getValue("error") as? String ?: tokenBody.getValue("error_type") as? String,
                 "Instagram token exchange failed: ${tokenBody.getString("error_message", tokenBody.getString("error_description", "unknown error"))}"
             )
         }

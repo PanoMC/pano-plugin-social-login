@@ -60,7 +60,8 @@ class GitHubOAuthService(
 
         val tokenBody = tokenResponse.bodyAsJsonObject()
         if (tokenBody.containsKey("error")) {
-            throw RuntimeException(
+            throw OAuthExchangeException(
+                tokenBody.getValue("error") as? String,
                 "GitHub token exchange failed: ${tokenBody.getString("error_description", tokenBody.getString("error"))}"
             )
         }

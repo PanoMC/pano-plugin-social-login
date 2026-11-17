@@ -28,7 +28,12 @@ import com.panomc.platform.error.RegisterUsernameTooShort
 import com.panomc.platform.schema.CoreSchemas
 import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.*
+import com.panomc.platform.db.model.User
+import com.panomc.platform.util.PasswordHasher
 import com.panomc.platform.util.RegisterUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.withContext
 import com.panomc.platform.util.TextUtil
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
@@ -44,6 +49,7 @@ import com.panomc.platform.schema.dsl.Bodies
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.booleanSchema
+import io.vertx.json.schema.common.dsl.Schemas.enumSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
@@ -64,7 +70,7 @@ class SocialRegisterCompleteAPI(
         tag = "auth",
         response = CoreSchemas.sessionFields(
             objectSchema()
-                .requiredProperty("action", stringSchema())
+                .requiredProperty("action", enumSchema("login", "verify-email"))
                 .optionalProperty("emailVerificationRequired", booleanSchema())
                 .optionalProperty("email", stringSchema())
         ),
@@ -73,7 +79,8 @@ class SocialRegisterCompleteAPI(
             IpIsBanned::class, RegisterUsernameEmpty::class, RegisterEmailEmpty::class, PasswordEmpty::class,
             RegisterUsernameTooShort::class, RegisterUsernameTooLong::class, PasswordTooShort::class, PasswordTooLong::class,
             RegisterInvalidUsername::class, RegisterInvalidEmail::class, RegisterPasswordAndPasswordRepeatNotSame::class,
-            RegisterNotAcceptedAgreement::class, RegisterUsernameNotAvailable::class, RegisterEmailNotAvailable::class
+            RegisterNotAcceptedAgreement::class, RegisterUsernameNotAvailable::class, RegisterEmailNotAvailable::class,
+            com.panomc.platform.error.LoginUserIsBanned::class, com.panomc.platform.error.LoginEmailNotVerified::class
         )
     )
 
@@ -101,21 +108,31 @@ class SocialRegisterCompleteAPI(
         plugin.applicationContext.getBean(MailManager::class.java)
     }
 
+    private val passwordHasher by lazy {
+        plugin.applicationContext.getBean(PasswordHasher::class.java)
+    }
+
     override fun getValidationHandler(schemaRepository: SchemaRepository): ValidationHandler =
         ValidationHandlerBuilder.create(schemaRepository)
             .body(
                 Bodies.json(
                     objectSchema()
-                        .requiredProperty("pendingToken", stringSchema())
-                        .requiredProperty("username", stringSchema())
-                        .requiredProperty("email", stringSchema())
-                        .requiredProperty("password", stringSchema())
-                        .requiredProperty("passwordRepeat", stringSchema())
+                        .requiredProperty("pendingToken", cappedString(SocialLimits.TOKEN))
+                        .requiredProperty("username", cappedString(SocialLimits.USERNAME))
+                        .requiredProperty("email", cappedString(SocialLimits.EMAIL))
+                        .requiredProperty("password", cappedString(SocialLimits.PASSWORD))
+                        .requiredProperty("passwordRepeat", cappedString(SocialLimits.PASSWORD))
                         .requiredProperty("agreement", booleanSchema())
                 )
             )
             .predicate(RequestPredicate.BODY_REQUIRED)
             .build()
+
+    private companion object {
+        /** Bounds how many social registrations hash at once, off the event loop. */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val PASSWORD_HASH_DISPATCHER = Dispatchers.IO.limitedParallelism(2)
+    }
 
     override suspend fun handle(context: RoutingContext): Result {
         socialLoginService.enforceAuthRateLimit(context)
@@ -175,13 +192,36 @@ class SocialRegisterCompleteAPI(
 
         val remoteIP = authProvider.getRemoteIP(context)
 
+        // Like RegisterUtil.register: a banned address registers nothing.
+        databaseManager.bannedIpDao.getActiveByIp(remoteIP, sqlClient)?.let { ban ->
+            throw IpIsBanned(extras = mapOf("reason" to ban.reason, "bannedUntil" to ban.bannedUntil))
+        }
+
+        // The slow hash runs before the transaction, so no pooled connection or row lock is held while it runs.
+        val algorithm = PasswordHasher.Algorithm.fromString(platformConfigManager.config.auth.passwordHashAlgorithm)
+        val hashedPassword = withContext(PASSWORD_HASH_DISPATCHER) { passwordHasher.hash(password, algorithm) }
+
         // Token use, account, verified mark and link together: a lost race on the link leaves no account
         // behind and the token still usable.
         val userId = socialLoginService.inTransaction(sqlClient) { tx ->
             // The form is fine: now the flow is used up (one time, a concurrent submit loses here).
             socialLoginService.consumePendingRegistration(pendingToken, tx) ?: throw InvalidFlowState()
 
-            val newUserId = RegisterUtil.register(databaseManager, tx, username, email, password, remoteIP)
+            // RegisterUtil.register without its hash (done above). A concurrent registration of the same name or
+            // address that won the race hits the unique key here: answered like the check above, not as a 500.
+            val user = User(
+                username = username,
+                email = email,
+                registeredIp = remoteIP,
+                mcUuid = RegisterUtil.generateOfflineUuid(username)
+            )
+            val newUserId = try {
+                databaseManager.userDao.add(user, hashedPassword, tx, false)
+            } catch (e: Exception) {
+                if (!e.isDuplicateKey()) throw e
+                if (e.duplicateKeyMessage().contains("email", ignoreCase = true)) throw RegisterEmailNotAvailable()
+                throw RegisterUsernameNotAvailable()
+            }
 
             if (markEmailVerified) {
                 databaseManager.userDao.makeEmailVerifiedById(newUserId, tx)

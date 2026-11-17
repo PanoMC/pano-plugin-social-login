@@ -91,7 +91,7 @@
   import { pluginText } from '../../lib/text.js';
   import { PROVIDER_META } from '../../lib/providers.js';
   import { enabledProviders } from '../../lib/enabledProviders.js';
-  import { resolveSocialError } from '../../lib/errors.js';
+  import { apiBody, resolveSocialError } from '../../lib/errors.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import { api } from '@panomc/sdk/plugin-api';
   import { onMount } from 'svelte';
@@ -108,8 +108,8 @@
   onMount(async () => {
     if (get(enabledProviders).length > 0) return;
     try {
-      const res = await api.get({ path: '/config' });
-      if (!res?.error && Array.isArray(res.items)) {
+      const res = apiBody(await api.get({ path: '/config' }));
+      if (!res.error && Array.isArray(res.items)) {
         enabledProviders.set(res.items);
       }
     } catch (e) {
@@ -121,14 +121,14 @@
     loadingProvider = provider;
     errorMessage = '';
     try {
-      const body = await api.get({ path: `/providers/${provider}/auth` });
+      const body = apiBody(await api.get({ path: `/providers/${provider}/auth` }));
 
-      if (!body?.error && body?.redirectUrl) {
+      if (!body.error && body.redirectUrl) {
         window.location.href = body.redirectUrl;
         return;
       }
 
-      errorMessage = resolveSocialError($_, body?.error?.code);
+      errorMessage = resolveSocialError($_, body.error?.code);
     } catch (e) {
       console.error('[pano-plugin-social-login] Auth init failed', e);
       errorMessage = $_('error.generic');

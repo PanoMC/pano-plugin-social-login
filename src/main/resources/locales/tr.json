@@ -10,27 +10,21 @@
     "RATE_LIMITED": "Çok fazla deneme. Lütfen biraz bekleyip tekrar deneyin.",
     "NOT_FOUND": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
     "access_denied": "Giriş iptal edildi.",
-    "TWO_FACTOR_INVALID_CODE": "Kod hatalı veya süresi dolmuş. Lütfen tekrar deneyin.",
-    "TWO_FACTOR_REQUIRED": "İki adımlı doğrulama kodu gerekli.",
     "PLUGIN_DENIED_LOGIN": "Doğrulama başarısız. Lütfen doğrulamayı tamamlayıp tekrar deneyin.",
     "NO_PANEL_ACCESS": "Bu hesabın yönetim paneline erişimi yok.",
-    "NO_LINKED_ACCOUNT": "Bu giriş yöntemine bağlı bir hesap yok. Bunun yerine şifrenle giriş yap.",
+    "NO_LINKED_ACCOUNT": "Bu giriş yöntemine bağlı bir hesap yok. Bunun yerine şifrenizle giriş yapın.",
     "SOCIAL_LOGIN_FAILED": "Sağlayıcı girişi kabul etmedi. Lütfen tekrar deneyin.",
     "LOGIN_USER_IS_BANNED": "Bu hesap yasaklanmış.",
     "IP_IS_BANNED": "Ağınızdan giriş yapılmasına izin verilmiyor.",
     "LOGIN_EMAIL_NOT_VERIFIED": "Bu hesabın e-posta adresi henüz doğrulanmadı. Adresinizi doğrulayıp tekrar deneyin.",
     "SOCIAL_ACCOUNT_NOT_LINKED": "Bu sosyal hesap hesabınıza bağlı değil.",
     "NETWORK_ERROR": "Bağlantı hatası. Lütfen tekrar deneyin.",
+    "REGISTER_EMAIL_REQUIRED": "Bu hesabın henüz bir e-posta adresi yok. Eklemek için şifrenizle giriş yapın, ardından sosyal hesabınızı ayarlardan bağlayın.",
+    "MAINTENANCE_MODE_ENABLED": "Site bakımda. Lütfen daha sonra tekrar deneyin.",
+    "DISABLED_FOR_DEMO": "Bu işlem demo sitede kullanılamaz.",
+    "INVALID_CSRF_TOKEN": "Oturumunuzun süresi doldu. Sayfayı yenileyip tekrar deneyin.",
+    "BAD_REQUEST": "İstek işlenemedi. Lütfen baştan başlayın.",
     "ban-reason": "Sebep: {reason}"
-  },
-  "two-factor": {
-    "title": "İki Adımlı Doğrulama",
-    "description": "Girişi tamamlamak için doğrulayıcı uygulamandaki kodu gir.",
-    "code-label": "Doğrulama kodu",
-    "submit": "Doğrula",
-    "submitting": "Doğrulanıyor...",
-    "success": "Doğrulandı! Yönlendiriliyor...",
-    "back-to-login": "Girişe dön"
   },
   "sidebar": {
     "title": "Bağlı Sosyal Hesaplar",
@@ -71,12 +65,15 @@
   "complete": {
     "loading": "Giriş tamamlanıyor...",
     "subtitle": "Hesabınızın gerektirdiği ek doğrulamayı tamamlayın.",
-    "invalid-token": "Bu giriş bağlantısının süresi dolmuş. Lütfen baştan tekrar deneyin."
+    "invalid-token": "Bu giriş bağlantısının süresi dolmuş. Lütfen baştan tekrar deneyin.",
+    "username-required-title": "Yeni bir kullanıcı adı seçin",
+    "username-required": "Giriş yapabilmeniz için hesabınızın yeni bir kullanıcı adına ihtiyacı var. Bir ad seçmek için giriş sayfasında şifrenizle giriş yapın.",
+    "username-required-action": "Giriş Sayfasına Git"
   },
   "register": {
-    "title": "Hesabını Oluştur",
+    "title": "Hesabınızı Oluşturun",
     "via": "{provider} ile",
-    "description": "Hesabını oluşturmayı tamamlamak için bir kullanıcı adı ve şifre belirle.",
+    "description": "Hesabınızı oluşturmayı tamamlamak için bir kullanıcı adı ve şifre belirleyin.",
     "username-label": "Kullanıcı Adı",
     "email-label": "E-posta",
     "password-label": "Şifre",
@@ -86,7 +83,7 @@
     "submit": "Hesap Oluştur",
     "submitting": "Hesap oluşturuluyor...",
     "success": "Hesap oluşturuldu! Yönlendiriliyorsunuz...",
-    "verify-email": "Hesap oluşturuldu. {email} adresine bir onay bağlantısı gönderdik: adresini onayla, sonra giriş yap.",
+    "verify-email": "Hesap oluşturuldu. {email} adresine bir onay bağlantısı gönderdik: adresinizi onaylayın, sonra giriş yapın.",
     "back-to-login": "Giriş Sayfasına Dön",
     "error": {
       "REGISTER_USERNAME_NOT_AVAILABLE": "Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir ad seçin.",

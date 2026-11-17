@@ -141,7 +141,7 @@
   import { derived } from 'svelte/store';
   import { _ as i18n } from '@panomc/sdk/utils/language';
   import { pluginText } from '../lib/text.js';
-  import { resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
+  import { apiBody, resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
   import { finishLogin, sitePath } from '../lib/signIn.js';
   import { getHost } from '../lib/host.js';
   import { onMount } from 'svelte';
@@ -178,11 +178,11 @@
     try {
       // Through the plugin-scoped client: it repeats the CSRF cookie in X-CSRF-Token, which the link intent
       // (a signed-in visitor attaching an account) needs on this POST.
-      const body = await api.post({ path: '/process', body: { provider, code, state } });
+      const body = apiBody(await api.post({ path: '/process', body: { provider, code, state } }));
 
       if (body.error) {
         callbackState = 'error';
-        errorMessage = resolveSocialErrorBody($_, body.error);
+        errorMessage = resolveSocialErrorBody($_, body.error, { raw: $i18n });
         return;
       }
 

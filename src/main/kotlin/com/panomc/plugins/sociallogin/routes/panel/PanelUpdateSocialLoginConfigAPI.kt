@@ -4,7 +4,9 @@ import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.api.config.PluginConfigManager
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.NoPermission
 import com.panomc.platform.model.*
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.model.Error
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialLoginConfig
@@ -13,6 +15,7 @@ import com.panomc.plugins.sociallogin.log.UpdatedSocialLoginSettingsLog
 import com.panomc.plugins.sociallogin.permission.ManageSocialLoginSettingsPermission
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.validation.RequestPredicate
 import io.vertx.ext.web.validation.ValidationHandler
 import com.panomc.platform.schema.dsl.Bodies
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
@@ -20,6 +23,7 @@ import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.booleanSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
+import java.net.URI
 
 /** `redirectBaseUrl` is set but is not an absolute http(s):// URL. */
 class InvalidRedirectBaseUrl : Error("INVALID_REDIRECT_BASE_URL", 400)
@@ -28,7 +32,25 @@ class InvalidRedirectBaseUrl : Error("INVALID_REDIRECT_BASE_URL", 400)
 class ProviderCredentialsRequired(provider: String) :
     Error("PROVIDER_CREDENTIALS_REQUIRED", 400, extras = mapOf("provider" to provider))
 
-private val ABSOLUTE_HTTP_URL = Regex("""^https?://[^\s/?#]+[^\s]*$""",RegexOption.IGNORE_CASE)
+/**
+ * Whether [value] is an absolute http(s) URL with a host and nothing but an optional path after it:
+ * no user info, query or fragment, since the callback path is appended to it.
+ */
+internal fun isValidRedirectBaseUrl(value: String): Boolean {
+    val uri = try {
+        URI(value)
+    } catch (e: Exception) {
+        return false
+    }
+
+    val scheme = uri.scheme?.lowercase()
+
+    return (scheme == "http" || scheme == "https") &&
+        !uri.host.isNullOrEmpty() &&
+        uri.rawUserInfo == null &&
+        uri.rawQuery == null &&
+        uri.rawFragment == null
+}
 
 /**
  * Admin endpoint: persists the plugin config. The incoming body is merged onto the current
@@ -39,6 +61,13 @@ class PanelUpdateSocialLoginConfigAPI(
     private val plugin: SocialLoginPlugin
 ) : PanelApi() {
     override val paths = listOf(Path("/config", RouteType.PUT))
+
+    override val doc = EndpointDoc(
+        summary = "Saves the plugin settings; omitted fields and blank secrets keep their stored values.",
+        tag = "config",
+        response = objectSchema(),
+        errors = listOf(NoPermission::class, InvalidRedirectBaseUrl::class, ProviderCredentialsRequired::class)
+    )
 
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)
@@ -58,31 +87,32 @@ class PanelUpdateSocialLoginConfigAPI(
             .body(
                 Bodies.json(
                     objectSchema()
-                        .optionalProperty("redirectBaseUrl", stringSchema())
+                        .optionalProperty("redirectBaseUrl", stringSchema().withKeyword("maxLength", 2048))
                         .optionalProperty("debugLogging", booleanSchema())
                         .optionalProperty("googleEnabled", booleanSchema())
-                        .optionalProperty("googleClientId", stringSchema())
-                        .optionalProperty("googleClientSecret", stringSchema())
+                        .optionalProperty("googleClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("googleClientSecret", stringSchema().withKeyword("maxLength", 512))
                         .optionalProperty("discordEnabled", booleanSchema())
-                        .optionalProperty("discordClientId", stringSchema())
-                        .optionalProperty("discordClientSecret", stringSchema())
+                        .optionalProperty("discordClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("discordClientSecret", stringSchema().withKeyword("maxLength", 512))
                         .optionalProperty("facebookEnabled", booleanSchema())
-                        .optionalProperty("facebookClientId", stringSchema())
-                        .optionalProperty("facebookClientSecret", stringSchema())
+                        .optionalProperty("facebookClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("facebookClientSecret", stringSchema().withKeyword("maxLength", 512))
                         .optionalProperty("twitterEnabled", booleanSchema())
-                        .optionalProperty("twitterClientId", stringSchema())
-                        .optionalProperty("twitterClientSecret", stringSchema())
+                        .optionalProperty("twitterClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("twitterClientSecret", stringSchema().withKeyword("maxLength", 512))
                         .optionalProperty("githubEnabled", booleanSchema())
-                        .optionalProperty("githubClientId", stringSchema())
-                        .optionalProperty("githubClientSecret", stringSchema())
+                        .optionalProperty("githubClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("githubClientSecret", stringSchema().withKeyword("maxLength", 512))
                         .optionalProperty("twitchEnabled", booleanSchema())
-                        .optionalProperty("twitchClientId", stringSchema())
-                        .optionalProperty("twitchClientSecret", stringSchema())
+                        .optionalProperty("twitchClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("twitchClientSecret", stringSchema().withKeyword("maxLength", 512))
                         .optionalProperty("instagramEnabled", booleanSchema())
-                        .optionalProperty("instagramClientId", stringSchema())
-                        .optionalProperty("instagramClientSecret", stringSchema())
+                        .optionalProperty("instagramClientId", stringSchema().withKeyword("maxLength", 512))
+                        .optionalProperty("instagramClientSecret", stringSchema().withKeyword("maxLength", 512))
                 )
             )
+            .predicate(RequestPredicate.BODY_REQUIRED)
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
@@ -100,7 +130,7 @@ class PanelUpdateSocialLoginConfigAPI(
         // stored without a trailing slash (the callback path is appended to it).
         val redirectBaseUrl = body.getString("redirectBaseUrl", current.redirectBaseUrl).trim().trimEnd('/')
 
-        if (redirectBaseUrl.isNotEmpty() && !ABSOLUTE_HTTP_URL.matches(redirectBaseUrl)) {
+        if (redirectBaseUrl.isNotEmpty() && !isValidRedirectBaseUrl(redirectBaseUrl)) {
             throw InvalidRedirectBaseUrl()
         }
 

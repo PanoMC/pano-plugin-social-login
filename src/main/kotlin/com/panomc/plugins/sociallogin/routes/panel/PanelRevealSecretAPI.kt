@@ -4,9 +4,11 @@ import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.api.config.PluginConfigManager
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.NoPermission
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.error.RateLimited
 import com.panomc.platform.model.*
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialLoginConfig
 import com.panomc.plugins.sociallogin.config.SocialProvider
@@ -15,10 +17,12 @@ import com.panomc.plugins.sociallogin.log.RevealedSocialLoginSecretLog
 import com.panomc.plugins.sociallogin.permission.ManageSocialLoginSettingsPermission
 import com.panomc.platform.util.RateLimitManager
 import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.validation.RequestPredicate
 import io.vertx.ext.web.validation.ValidationHandler
 import com.panomc.platform.schema.dsl.Bodies
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
+import io.vertx.json.schema.common.dsl.Schemas.enumSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
@@ -32,6 +36,13 @@ class PanelRevealSecretAPI(
     private val plugin: SocialLoginPlugin
 ) : PanelApi() {
     override val paths = listOf(Path("/config/reveal-secret", RouteType.POST))
+
+    override val doc = EndpointDoc(
+        summary = "Returns one provider's stored client secret after the admin confirmed their password.",
+        tag = "config",
+        response = objectSchema().requiredProperty("clientSecret", stringSchema()),
+        errors = listOf(NoPermission::class, RateLimited::class, NotFound::class, InvalidPassword::class)
+    )
 
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)
@@ -55,10 +66,11 @@ class PanelRevealSecretAPI(
             .body(
                 Bodies.json(
                     objectSchema()
-                        .requiredProperty("provider", stringSchema())
-                        .requiredProperty("password", stringSchema())
+                        .requiredProperty("provider", enumSchema(*SocialProvider.entries.map { it.key }.toTypedArray()))
+                        .requiredProperty("password", stringSchema().withKeyword("maxLength", 128))
                 )
             )
+            .predicate(RequestPredicate.BODY_REQUIRED)
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {

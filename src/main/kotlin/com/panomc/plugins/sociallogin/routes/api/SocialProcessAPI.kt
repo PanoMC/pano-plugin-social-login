@@ -19,6 +19,7 @@ import com.panomc.plugins.sociallogin.error.InvalidFlowState
 import com.panomc.plugins.sociallogin.error.ProviderNotEnabled
 import com.panomc.plugins.sociallogin.error.SocialLoginFailed
 import com.panomc.plugins.sociallogin.error.SocialAccountAlreadyLinked
+import com.panomc.plugins.sociallogin.service.OAuthExchangeException
 import com.panomc.plugins.sociallogin.service.OAuthProviderRegistry
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import com.panomc.plugins.sociallogin.service.SocialProfile
@@ -86,11 +87,11 @@ class SocialProcessAPI(
             .body(
                 Bodies.json(
                     objectSchema()
-                        .requiredProperty("provider", stringSchema())
-                        .requiredProperty("code", stringSchema())
-                        .requiredProperty("state", stringSchema())
+                        .requiredProperty("provider", providerSchema())
+                        .requiredProperty("code", cappedString(SocialLimits.TOKEN))
+                        .requiredProperty("state", cappedString(SocialLimits.TOKEN))
                         // Required for a state started by a front-end with a stored key: the init answer's value.
-                        .optionalProperty("bindingSecret", stringSchema())
+                        .optionalProperty("bindingSecret", cappedString(SocialLimits.TOKEN))
                 )
             )
             .predicate(RequestPredicate.BODY_REQUIRED)
@@ -128,8 +129,9 @@ class SocialProcessAPI(
         val profile = try {
             oauthProvider.exchangeCodeForProfile(redirectUri, code, codeVerifier)
         } catch (e: Exception) {
-            plugin.logger.error("Social OAuth exchange failed for ${provider.key}: ${e.message}", e)
-            throw SocialLoginFailed(e.message ?: "Social login failed.")
+            // The details stay in the server log (they never hold the code or a token); the caller gets a fixed answer.
+            plugin.logger.warn("Social OAuth exchange failed for ${provider.key}: ${e.javaClass.simpleName}: ${e.message}")
+            throw SocialLoginFailed((e as? OAuthExchangeException)?.oauthError)
         }
 
         return when (intent) {
@@ -162,20 +164,22 @@ class SocialProcessAPI(
         }
 
         // Replace any previous link for this provider on this account with the just-authorized one,
-        // in one transaction so a lost race does not leave the account without its old link.
-        socialLoginService.inTransaction(sqlClient) { tx ->
-            socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, tx)
-            socialLoginService.addLinkUnique(
-                SocialLoginLink(
-                    userId = userId,
-                    provider = provider.key,
-                    providerUserId = profile.providerUserId,
-                    email = profile.email,
-                    displayName = profile.displayName,
-                    avatarUrl = profile.avatarUrl
-                ),
-                tx
-            )
+        // in one transaction so a lost race does not leave the account without its old link. A lock conflict
+        // between two concurrent links is run once more; a duplicate that is left is a lost race.
+        val link = SocialLoginLink(
+            userId = userId,
+            provider = provider.key,
+            providerUserId = profile.providerUserId,
+            email = profile.email,
+            displayName = profile.displayName,
+            avatarUrl = profile.avatarUrl
+        )
+        linkDuplicateAsAlreadyLinked {
+            retryOnLockConflict {
+                socialLoginService.inTransaction(sqlClient) { tx ->
+                    replaceLink(socialLoginLinkDao, socialLoginService, link, tx)
+                }
+            }
         }
 
         return Successful(mapOf("action" to "link", "provider" to provider.key))

@@ -10,8 +10,8 @@ export default {
       data: {
         ownProfile: true,
         links: [
-          { provider: 'discord', displayName: 'Steve#1234', email: 'steve@example.com', avatarUrl: null, linkedAt: 1760000000000 },
-          { provider: 'github', displayName: 'steve', email: null, avatarUrl: null, linkedAt: 1760000000000 },
+          { provider: 'discord', displayName: 'Steve#1234', email: 'steve@example.com', linkedAt: 1760000000000 },
+          { provider: 'github', displayName: 'steve', email: null, linkedAt: 1760000000000 },
         ],
       },
     },

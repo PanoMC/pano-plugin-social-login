@@ -5,7 +5,10 @@
     </div>
     <div class="card-body">
       {#if !hasProviders}
-        <div class="alert alert-danger mb-0" role="alert">{$_('plugin-settings.load-error')}</div>
+        <div class="alert alert-danger d-flex align-items-start mb-0" role="alert">
+          <i class="fas fa-circle-exclamation me-3 mt-1" aria-hidden="true"></i>
+          <div>{$_('plugin-settings.load-error')}</div>
+        </div>
       {:else}
       <div class="alert alert-info d-flex align-items-start mb-4" role="alert">
         <i class="fas fa-circle-info me-3 mt-1" aria-hidden="true"></i>
@@ -326,9 +329,13 @@
   // The host toast translates the full key, so plugin texts need the `plugins.<id>.` prefix.
   const pluginKey = (key) => `plugins.${PLUGIN_ID}.${key}`;
 
+  // The config answers its provider list under `items`; `providers` is the older key.
+  const configProviders = (config) =>
+    Array.isArray(config?.items) ? config.items : Array.isArray(config?.providers) ? config.providers : null;
+
   function buildForm() {
     const providers = {};
-    (addon?.config?.providers || []).forEach((p) => {
+    (configProviders(addon?.config) || []).forEach((p) => {
       providers[p.key] = {
         key: p.key,
         displayName: p.displayName,
@@ -509,7 +516,7 @@
 
       // Reload from the server so derived values (e.g. each provider's redirect URI) are current.
       const fresh = await api.panel.get({ path: '/config' });
-      if (fresh && !fresh.error && Array.isArray(fresh.providers)) {
+      if (fresh && !fresh.error && configProviders(fresh)) {
         const expanded = expandedProvider;
         addon.config = fresh;
         form = buildForm();

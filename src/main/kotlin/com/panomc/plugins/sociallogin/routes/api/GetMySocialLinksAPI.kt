@@ -17,7 +17,8 @@ import io.vertx.json.schema.common.dsl.Schemas.*
 
 /**
  * Returns the logged-in user's linked social accounts plus the currently enabled providers,
- * so the theme profile/settings UI can render the link/unlink controls.
+ * so the theme profile/settings UI can render the link/unlink controls. The provider avatar address is not
+ * answered (it is a third-party URL that tracks whoever loads it); the e-mail is, so the user can tell links apart.
  */
 @Endpoint
 class GetMySocialLinksAPI(
@@ -34,7 +35,6 @@ class GetMySocialLinksAPI(
                 .requiredProperty("provider", stringSchema())
                 .requiredProperty("displayName", stringSchema().nullable())
                 .requiredProperty("email", stringSchema().nullable())
-                .requiredProperty("avatarUrl", stringSchema().nullable())
                 .requiredProperty("linkedAt", intSchema())
         ).requiredProperty("enabledProviders", arraySchema().items(stringSchema())),
         errors = listOf(NotLoggedIn::class)
@@ -64,7 +64,6 @@ class GetMySocialLinksAPI(
                         "provider" to it.provider,
                         "displayName" to it.displayName,
                         "email" to it.email,
-                        "avatarUrl" to it.avatarUrl,
                         "linkedAt" to it.linkedAt
                     )
                 },

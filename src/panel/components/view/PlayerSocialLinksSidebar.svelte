@@ -64,6 +64,7 @@
   import { _, PROVIDER_META } from '../../../main.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import { api } from '@panomc/sdk/plugin-api';
+  import { get } from 'svelte/store';
   import { socialLinksChanged } from '../../linksChanged.js';
 
   export let playerData;
@@ -85,7 +86,8 @@
   }
 
   // The edit modal unlinked accounts of this player: the layout's socialPreload is stale now.
-  let lastChangeAt = 0;
+  // Start from the store's current value so a change made before this mount does not refetch.
+  let lastChangeAt = get(socialLinksChanged)?.at ?? 0;
   $: if ($socialLinksChanged && $socialLinksChanged.at !== lastChangeAt) {
     lastChangeAt = $socialLinksChanged.at;
     if ($socialLinksChanged.username === playerData?.username) {

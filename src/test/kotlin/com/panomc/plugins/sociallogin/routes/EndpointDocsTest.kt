@@ -12,8 +12,16 @@ import com.panomc.plugins.sociallogin.routes.api.SocialLinkInitAPI
 import com.panomc.plugins.sociallogin.routes.api.SocialProcessAPI
 import com.panomc.plugins.sociallogin.routes.api.SocialRegisterCompleteAPI
 import com.panomc.plugins.sociallogin.routes.api.SocialUnlinkAPI
+import com.panomc.plugins.sociallogin.routes.panel.PanelGetPlayerSocialLinksAPI
+import com.panomc.plugins.sociallogin.routes.panel.PanelGetSocialLoginConfigAPI
+import com.panomc.plugins.sociallogin.routes.panel.PanelRevealSecretAPI
+import com.panomc.plugins.sociallogin.routes.panel.PanelUnlinkPlayerSocialAPI
+import com.panomc.plugins.sociallogin.routes.panel.PanelUpdateSocialLoginConfigAPI
+import com.panomc.plugins.sociallogin.routes.panel.isValidRedirectBaseUrl
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -36,6 +44,14 @@ class EndpointDocsTest {
         SocialUnlinkAPI(plugin, dao)
     )
 
+    private val panelEndpoints: List<Api> = listOf(
+        PanelGetPlayerSocialLinksAPI(plugin, dao),
+        PanelGetSocialLoginConfigAPI(plugin),
+        PanelRevealSecretAPI(plugin),
+        PanelUnlinkPlayerSocialAPI(plugin, dao),
+        PanelUpdateSocialLoginConfigAPI(plugin)
+    )
+
     @Test
     fun `every public endpoint has a usable doc`() {
         publicEndpoints.forEach { api ->
@@ -44,6 +60,47 @@ class EndpointDocsTest {
             assertNotNull(doc, "${api.javaClass.simpleName} has no doc")
             assertNull(doc!!.problem(), api.javaClass.simpleName)
         }
+    }
+
+    @Test
+    fun `every panel endpoint has a usable doc that declares its errors`() {
+        panelEndpoints.forEach { api ->
+            val doc = api.doc
+
+            assertNotNull(doc, "${api.javaClass.simpleName} has no doc")
+            assertNull(doc!!.problem(), api.javaClass.simpleName)
+            assertTrue(doc.errors.isNotEmpty(), "${api.javaClass.simpleName} declares no errors")
+        }
+    }
+
+    @Test
+    fun `the panel config answers its providers under items and keeps providers`() {
+        val doc = PanelGetSocialLoginConfigAPI(plugin).doc!!
+        val provider = JsonObject().put("key", "google").put("displayName", "Google").put("enabled", true)
+            .put("clientId", "id").put("hasSecret", true).put("redirectUri", "https://a.com/cb")
+        val answer = JsonObject().put("redirectBaseUrl", "").put("debugLogging", false)
+            .put("items", JsonArray().add(provider)).put("providers", JsonArray().add(provider))
+
+        assertEquals(emptyList<String>(), doc.check(answer))
+        assertTrue(doc.check(answer.copy().apply { remove("items") }).isNotEmpty())
+    }
+
+    @Test
+    fun `the panel player links answer has no avatar url`() {
+        val doc = PanelGetPlayerSocialLinksAPI(plugin, dao).doc!!
+        val link = JsonObject().put("provider", "github").put("displayName", "Steve").put("email", "s@a.com").put("linkedAt", 1L)
+
+        assertEquals(emptyList<String>(), doc.check(JsonObject().put("items", JsonArray().add(link))))
+    }
+
+    @Test
+    fun `the redirect base url is an absolute http url without query, fragment or user info`() {
+        listOf("https://a.com", "http://a.com:8080", "https://a.com/pano").forEach {
+            assertTrue(isValidRedirectBaseUrl(it), it)
+        }
+
+        listOf("https://a.com?x", "https://a.com/#a", "https://u:p@a.com", "ftp://a.com", "https://", "a.com", "https://a .com")
+            .forEach { assertFalse(isValidRedirectBaseUrl(it), it) }
     }
 
     @Test
@@ -68,9 +125,9 @@ class EndpointDocsTest {
 
         assertEquals(
             emptyList<String>(),
-            doc.check(JsonObject().put("items", io.vertx.core.json.JsonArray().add(link)).put("enabledProviders", io.vertx.core.json.JsonArray().add("github")))
+            doc.check(JsonObject().put("items", JsonArray().add(link)).put("enabledProviders", JsonArray().add("github")))
         )
-        assertTrue(doc.check(JsonObject().put("links", io.vertx.core.json.JsonArray())).isNotEmpty())
+        assertTrue(doc.check(JsonObject().put("links", JsonArray())).isNotEmpty())
     }
 
     @Test

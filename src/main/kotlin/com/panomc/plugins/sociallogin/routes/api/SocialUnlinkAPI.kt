@@ -17,7 +17,6 @@ import com.panomc.platform.schema.dsl.Bodies
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
-import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
 /**
  * Unlinks the logged-in user's account for a given provider. Social-registered users always
@@ -46,7 +45,7 @@ class SocialUnlinkAPI(
             .body(
                 Bodies.json(
                     objectSchema()
-                        .requiredProperty("provider", stringSchema())
+                        .requiredProperty("provider", providerSchema())
                 )
             )
             .predicate(RequestPredicate.BODY_REQUIRED)

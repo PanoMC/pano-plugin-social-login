@@ -56,7 +56,7 @@ class FacebookOAuthService(
         val tokenBody = tokenResponse.bodyAsJsonObject()
         if (tokenBody.containsKey("error")) {
             val err = tokenBody.getJsonObject("error")
-            throw RuntimeException("Facebook token exchange failed: ${err?.getString("message") ?: "unknown error"}")
+            throw OAuthExchangeException(null, "Facebook token exchange failed: ${err?.getString("message") ?: "unknown error"}")
         }
         val accessToken = tokenBody.getString("access_token")
             ?: throw RuntimeException("Facebook token exchange returned no access_token")

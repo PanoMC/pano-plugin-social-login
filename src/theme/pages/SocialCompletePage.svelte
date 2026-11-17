@@ -120,6 +120,15 @@
           </div>
           <h5 class="social-login-social-complete-page__title text-success">{$_('callback.login-success')}</h5>
           <p class="text-muted">{$_('callback.redirecting')}</p>
+        {:else if pageState === 'username-required'}
+          <!-- The account still has a temporary username: core asks for a new one on the password sign-in
+               (the login page's username step), so the visitor continues there. -->
+          <div class="social-login-social-complete-page__icon text-primary">
+            <i class="fas fa-user-edit"></i>
+          </div>
+          <h5 class="social-login-social-complete-page__title">{$_('complete.username-required-title')}</h5>
+          <p class="text-muted">{$_('complete.username-required')}</p>
+          <a href={sitePath('/login')} class="social-login-social-complete-page__action btn btn-primary">{$_('complete.username-required-action')}</a>
         {:else}
           <div class="social-login-social-complete-page__icon is-error">
             <i class="fas fa-times-circle"></i>
@@ -159,7 +168,7 @@
   import { _ as i18n } from '@panomc/sdk/utils/language';
   import ApiUtil from '@panomc/sdk/utils/api';
   import { pluginText } from '../lib/text.js';
-  import { resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
+  import { apiBody, resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
   import { finishLogin, sitePath } from '../lib/signIn.js';
   import { getHost } from '../lib/host.js';
   import { onMount, tick } from 'svelte';
@@ -215,9 +224,16 @@
     try {
       // Through the SDK: it sends X-CSRF-Token and resolves the API base. It calls the global fetch, so the
       // login-content widgets' fetch interceptors (2FA modal, captcha) still see the request.
-      const body = await ApiUtil.post({ path: '/auth/complete-pending', body: { pendingToken: token } });
+      const body = apiBody(await ApiUtil.post({ path: '/auth/complete-pending', body: { pendingToken: token } }));
 
-      if (body?.error) {
+      if (body.error?.code === 'USERNAME_REQUIRED') {
+        // A plugin (or core) wants a new username first. The pending sign-in is used up, so the visitor finishes on the
+        // login page, which asks for the username (`SET_USERNAME`) as on any password sign-in.
+        pageState = 'username-required';
+        return;
+      }
+
+      if (body.error) {
         // PLUGIN_DENIED_LOGIN (e.g. 2FA cancelled) and other failures land here. Token-side errors
         // (expired/missing) come back as INVALID_TOKEN. Generic surface — challenge UIs would've
         // intercepted the response themselves before we got here on success.
@@ -239,22 +255,10 @@
   });
 
   function resolveError(body) {
-    const code = body.error?.code;
-    const reason = body.error?.details?.reason;
-    if (code === 'PLUGIN_DENIED_LOGIN' && reason) {
-      // The reason is a full i18n key of the plugin that denied (e.g. `plugins.pano-plugin-auth-guard.errors.…`):
-      // translate it unprefixed. A missing translation comes back as the key itself; fall back to the generic text.
-      try {
-        const msg = $i18n(reason);
-        if (msg && msg !== reason) return msg;
-      } catch (e) {
-        // fall through
-      }
-      return $_('error.generic');
-    }
-    if (code === 'INVALID_TOKEN') {
+    if (body.error?.code === 'INVALID_TOKEN') {
       return $_('complete.invalid-token');
     }
-    return resolveSocialErrorBody($_, body.error);
+    // PLUGIN_DENIED_LOGIN carries an i18n key of the denying plugin as its reason: translated unprefixed.
+    return resolveSocialErrorBody($_, body.error, { raw: $i18n });
   }
 </script>

@@ -32,10 +32,21 @@ class SocialLoginErrorsTest {
     }
 
     @Test
-    fun `a failed exchange carries the provider's reason as the message`() {
+    fun `a failed exchange answers a standard OAuth code, never the provider's text`() {
         val body = SocialLoginFailed("invalid_grant").encode(mapOf())
 
         assertEquals(true, body.contains("\"code\":\"SOCIAL_LOGIN_FAILED\""))
-        assertEquals(true, body.contains("\"message\":\"invalid_grant\""))
+        assertEquals(true, body.contains("\"oauthError\":\"invalid_grant\""))
+        assertEquals(false, body.contains("\"message\""))
+    }
+
+    @Test
+    fun `a non-standard provider value is not answered`() {
+        val body = SocialLoginFailed("Bad code from 10.0.0.5: connection refused").encode(mapOf())
+
+        assertEquals(true, body.contains("\"code\":\"SOCIAL_LOGIN_FAILED\""))
+        assertEquals(false, body.contains("10.0.0.5"))
+        assertEquals(false, body.contains("oauthError"))
+        assertEquals(false, body.contains("\"message\""))
     }
 }

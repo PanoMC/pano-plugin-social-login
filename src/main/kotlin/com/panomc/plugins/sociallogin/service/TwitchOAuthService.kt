@@ -56,7 +56,8 @@ class TwitchOAuthService(
 
         val tokenBody = tokenResponse.bodyAsJsonObject()
         if (tokenBody.getString("access_token") == null) {
-            throw RuntimeException(
+            throw OAuthExchangeException(
+                tokenBody.getValue("error") as? String,
                 "Twitch token exchange failed: ${tokenBody.getString("message", tokenBody.getString("error", "unknown error"))}"
             )
         }

@@ -133,7 +133,7 @@
   import { _ as i18n } from '@panomc/sdk/utils/language';
   import { pluginText } from '../lib/text.js';
   import { PROVIDER_META } from '../lib/providers.js';
-  import { resolveSocialError } from '../lib/errors.js';
+  import { apiBody, resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
   import { finishLogin, sitePath } from '../lib/signIn.js';
   import { getHost } from '../lib/host.js';
   import ProviderIcon from '../../components/ProviderIcon.svelte';
@@ -204,11 +204,11 @@
     };
   });
 
-  function resolveError(code) {
-    if (code && ERROR_KEYS.includes(code)) {
-      return $_(`link-existing.error.${code}`);
-    }
-    return resolveSocialError($_, code);
+  /** The `error` of an answer: the page's own text for its codes, plus a ban's or a plugin's reason. */
+  function resolveError(error) {
+    const code = error?.code;
+    const message = code && ERROR_KEYS.includes(code) ? $_(`link-existing.error.${code}`) : undefined;
+    return resolveSocialErrorBody($_, error, { raw: $i18n, message });
   }
 
   async function onSubmit() {
@@ -218,17 +218,19 @@
 
     try {
       // Through the plugin-scoped client: it sends X-CSRF-Token, which core requires once a session cookie exists.
-      const body = await api.post({
-        path: '/link-existing',
-        body: {
-          pendingToken: token,
-          usernameOrEmail,
-          password,
-        },
-      });
+      const body = apiBody(
+        await api.post({
+          path: '/link-existing',
+          body: {
+            pendingToken: token,
+            usernameOrEmail,
+            password,
+          },
+        }),
+      );
 
       if (body.error) {
-        error = resolveError(body.error.code);
+        error = resolveError(body.error);
         loading = false;
         return;
       }

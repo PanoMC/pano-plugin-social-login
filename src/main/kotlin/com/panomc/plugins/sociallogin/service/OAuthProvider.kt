@@ -11,6 +11,12 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /**
+ * A provider refused the code exchange. [oauthError] is the provider's raw `error` value (RFC 6749 §5.2) when it sent
+ * one; the message carries the provider's description for the server log only, never for the caller.
+ */
+class OAuthExchangeException(val oauthError: String?, message: String) : RuntimeException(message)
+
+/**
  * Base class for a single social provider's OAuth implementation. Concrete subclasses only
  * differ in endpoints, scopes and how the provider's user payload maps onto [SocialProfile].
  */

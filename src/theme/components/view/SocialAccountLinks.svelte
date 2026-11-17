@@ -74,6 +74,7 @@
 
 <script module>
   import { api } from '@panomc/sdk/plugin-api';
+  import { apiBody } from '../../lib/errors.js';
 
   export async function load(event) {
     try {
@@ -82,8 +83,8 @@
       } = await event.parent();
       if (!user) return { links: [], enabledProviders: [] };
 
-      const res = await api.get({ path: '/links', request: event });
-      if (res && !res.error) {
+      const res = apiBody(await api.get({ path: '/links', request: event }));
+      if (!res.error) {
         return {
           links: Array.isArray(res.items) ? res.items : [],
           enabledProviders: Array.isArray(res.enabledProviders) ? res.enabledProviders : [],
@@ -124,12 +125,12 @@
     busyProvider = provider;
     errorMessage = '';
     try {
-      const res = await api.get({ path: `/providers/${provider}/link` });
-      if (res?.redirectUrl) {
+      const res = apiBody(await api.get({ path: `/providers/${provider}/link` }));
+      if (!res.error && res.redirectUrl) {
         window.location.href = res.redirectUrl;
         return;
       }
-      errorMessage = resolveSocialError($_, res?.error?.code);
+      errorMessage = resolveSocialError($_, res.error?.code);
     } catch (e) {
       console.error('[pano-plugin-social-login] Link init failed', e);
       errorMessage = $_('error.generic');
@@ -141,11 +142,13 @@
     busyProvider = provider;
     errorMessage = '';
     try {
-      const res = await api.post({
-        path: '/unlink',
-        body: { provider },
-      });
-      if (!res?.error) {
+      const res = apiBody(
+        await api.post({
+          path: '/unlink',
+          body: { provider },
+        }),
+      );
+      if (!res.error) {
         window.location.reload();
         return;
       }

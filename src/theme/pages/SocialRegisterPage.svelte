@@ -165,7 +165,7 @@
   import { _ as i18n } from '@panomc/sdk/utils/language';
   import { pluginText } from '../lib/text.js';
   import { PROVIDER_META } from '../lib/providers.js';
-  import { resolveSocialError } from '../lib/errors.js';
+  import { apiBody, resolveSocialErrorBody } from '../lib/errors.js';
   import { finishLogin } from '../lib/signIn.js';
   import ApiUtil from '@panomc/sdk/utils/api';
   import { api } from '@panomc/sdk/plugin-api';
@@ -234,8 +234,8 @@
     // Mirror the theme register: only require the agreement when the site enables it.
     // (The site info is read from the API: a view does not reach into the theme's session context, rule V5.)
     try {
-      const info = await ApiUtil.get({ path: '/site-info' });
-      if (info && !info.error) {
+      const info = apiBody(await ApiUtil.get({ path: '/site-info' }));
+      if (!info.error) {
         requireAgreement = !!info.hasRegisterAgreement;
         if (!requireAgreement) agreement = true;
       }
@@ -266,11 +266,11 @@
     };
   });
 
-  function resolveError(code) {
-    if (code && ERROR_KEYS.includes(code)) {
-      return $_(`register.error.${code}`);
-    }
-    return resolveSocialError($_, code);
+  /** The `error` of an answer: the page's own text for its codes, plus a ban's or a plugin's reason. */
+  function resolveError(error) {
+    const code = error?.code;
+    const message = code && ERROR_KEYS.includes(code) ? $_(`register.error.${code}`) : undefined;
+    return resolveSocialErrorBody($_, error, { raw: $i18n, message });
   }
 
   async function onSubmit() {
@@ -280,20 +280,22 @@
 
     try {
       // Through the plugin-scoped client: it sends X-CSRF-Token, which core requires once a session cookie exists.
-      const body = await api.post({
-        path: '/register',
-        body: {
-          pendingToken: token,
-          username,
-          email,
-          password,
-          passwordRepeat,
-          agreement,
-        },
-      });
+      const body = apiBody(
+        await api.post({
+          path: '/register',
+          body: {
+            pendingToken: token,
+            username,
+            email,
+            password,
+            passwordRepeat,
+            agreement,
+          },
+        }),
+      );
 
       if (body.error) {
-        error = resolveError(body.error.code);
+        error = resolveError(body.error);
         loading = false;
         return;
       }

@@ -48,6 +48,24 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
 
         /** The intent of a pending payload; tokens made before intents existed count as register tokens. */
         fun pendingIntent(payload: JsonObject): String = payload.getString("intent") ?: PENDING_INTENT_REGISTER
+
+        /**
+         * The payload of the OAuth state [row] when it may be used now: it exists, is an OAuth state, has not
+         * expired at [now], and [bindingMatches] accepts its payload (the request comes from the caller that
+         * started the round trip). Null otherwise; the caller then leaves the row in place.
+         */
+        fun validOAuthStatePayload(
+            row: SocialLoginState?,
+            now: Long,
+            bindingMatches: (JsonObject) -> Boolean
+        ): JsonObject? {
+            if (row == null) return null
+            if (row.kind != SocialLoginState.Kind.OAUTH_STATE.name) return null
+            if (row.expiresAt < now) return null
+            val payload = JsonObject(row.payload)
+            if (!bindingMatches(payload)) return null
+            return payload
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -132,6 +150,12 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         return base + ApiPaths.plugin(plugin.pluginId, "/providers/${provider.key}/callback")
     }
 
+    /**
+     * Deletes the expired flow rows (OAuth states and pending registrations, which hold an e-mail, name and
+     * avatar). Called by the plugin's periodic purge; returns how many rows went.
+     */
+    suspend fun purgeExpired(sqlClient: SqlClient): Int = socialLoginStateDao.deleteExpired(sqlClient)
+
     // --- OAuth state: random, server-stored, one-time — CSRF protection for the round-trip ---
 
     /** A new OAuth state: its [token], and the binding secret only a stored-key caller gets (null for a browser). */
@@ -163,7 +187,6 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         binding.browserHash?.let { payload.put("browser", it) }
         binding.secretHash?.let { payload.put("bindingSecretHash", it) }
 
-        socialLoginStateDao.deleteExpired(sqlClient)
         socialLoginStateDao.add(
             SocialLoginState(
                 token = token,
@@ -188,14 +211,17 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         context: RoutingContext,
         sqlClient: SqlClient
     ): JsonObject? {
-        val row = socialLoginStateDao.getByToken(token, sqlClient) ?: return null
-        if (row.kind != SocialLoginState.Kind.OAUTH_STATE.name) return null
-        if (row.expiresAt < System.currentTimeMillis()) return null
-        val payload = JsonObject(row.payload)
+        val row = socialLoginStateDao.getByToken(token, sqlClient)
+        val payload = validOAuthStatePayload(row, System.currentTimeMillis()) { statePayload ->
+            OAuthBrowserBinding.matches(
+                context,
+                token,
+                statePayload.getString("browser"),
+                statePayload.getString("bindingSecretHash"),
+                bindingSecret
+            )
+        } ?: return null
         val browserHash = payload.getString("browser")
-        if (!OAuthBrowserBinding.matches(context, token, browserHash, payload.getString("bindingSecretHash"), bindingSecret)) {
-            return null
-        }
         // Atomic single-use: only the caller whose DELETE actually removed the row proceeds.
         // A concurrent request for the same token loses the race and gets null.
         if (!socialLoginStateDao.deleteByToken(token, sqlClient)) return null
@@ -220,7 +246,6 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
             .put("displayName", profile.displayName)
             .put("avatarUrl", profile.avatarUrl)
 
-        socialLoginStateDao.deleteExpired(sqlClient)
         socialLoginStateDao.add(
             SocialLoginState(
                 token = token,

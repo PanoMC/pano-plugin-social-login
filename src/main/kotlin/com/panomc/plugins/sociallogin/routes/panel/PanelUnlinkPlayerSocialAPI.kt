@@ -3,8 +3,10 @@ package com.panomc.plugins.sociallogin.routes.panel
 import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.NoPermission
 import com.panomc.platform.error.NotFound
 import com.panomc.platform.model.*
+import com.panomc.platform.schema.EndpointDoc
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
@@ -18,6 +20,7 @@ import com.panomc.platform.schema.dsl.Bodies
 import com.panomc.platform.schema.dsl.Parameters
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
+import io.vertx.json.schema.common.dsl.Schemas.enumSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 
@@ -31,6 +34,13 @@ class PanelUnlinkPlayerSocialAPI(
 ) : PanelApi() {
     override val paths = listOf(Path("/player/:username/unlink", RouteType.POST))
 
+    override val doc = EndpointDoc(
+        summary = "Removes one of a player's social account links.",
+        tag = "links",
+        response = objectSchema(),
+        errors = listOf(NoPermission::class, NotFound::class, SocialAccountNotLinked::class)
+    )
+
     private val authProvider by lazy {
         plugin.applicationContext.getBean(AuthProvider::class.java)
     }
@@ -41,11 +51,11 @@ class PanelUnlinkPlayerSocialAPI(
 
     override fun getValidationHandler(schemaRepository: SchemaRepository): ValidationHandler =
         ValidationHandlerBuilder.create(schemaRepository)
-            .pathParameter(Parameters.param("username", stringSchema()))
+            .pathParameter(Parameters.param("username", stringSchema().withKeyword("maxLength", 64)))
             .body(
                 Bodies.json(
                     objectSchema()
-                        .requiredProperty("provider", stringSchema())
+                        .requiredProperty("provider", enumSchema(*SocialProvider.entries.map { it.key }.toTypedArray()))
                 )
             )
             .predicate(RequestPredicate.BODY_REQUIRED)

@@ -9,7 +9,7 @@ export default {
     props: {
       data: {
         links: [
-          { provider: 'discord', displayName: 'Steve#1234', email: 'steve@example.com', avatarUrl: null, linkedAt: 1760000000000 },
+          { provider: 'discord', displayName: 'Steve#1234', email: 'steve@example.com', linkedAt: 1760000000000 },
         ],
         enabledProviders: ['discord', 'github', 'google'],
       },

@@ -5,6 +5,7 @@ import com.panomc.platform.error.NotLoggedIn
 import com.panomc.platform.schema.EndpointDoc
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.error.NotFound
+import com.panomc.platform.error.RateLimited
 import com.panomc.platform.model.*
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
@@ -14,7 +15,6 @@ import com.panomc.plugins.sociallogin.service.PkceUtil
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
-import com.panomc.platform.schema.dsl.Parameters
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
@@ -37,7 +37,7 @@ class SocialLinkInitAPI(
             .requiredProperty("redirectUrl", stringSchema())
             // Only for a front-end with a stored key: send it back as `bindingSecret` to `/process`.
             .optionalProperty("bindingSecret", stringSchema()),
-        errors = listOf(NotLoggedIn::class, NotFound::class, ProviderNotEnabled::class)
+        errors = listOf(NotLoggedIn::class, NotFound::class, ProviderNotEnabled::class, RateLimited::class)
     )
 
     private val oauthRegistry by lazy {
@@ -54,10 +54,12 @@ class SocialLinkInitAPI(
 
     override fun getValidationHandler(schemaRepository: SchemaRepository): ValidationHandler =
         ValidationHandlerBuilder.create(schemaRepository)
-            .pathParameter(Parameters.param("provider", stringSchema()))
+            .pathParameter(providerPathParam())
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
+        // Every start writes a state row and a cookie: throttled like the other sign-in steps.
+        socialLoginService.enforceAuthRateLimit(context)
         val providerKey = getParameters(context).pathParameter("provider").string
         val provider = SocialProvider.fromKey(providerKey) ?: throw NotFound()
 

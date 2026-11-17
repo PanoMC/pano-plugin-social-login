@@ -10,8 +10,6 @@
     "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
     "NOT_FOUND": "Something went wrong. Please try again.",
     "access_denied": "Sign-in was canceled.",
-    "TWO_FACTOR_INVALID_CODE": "Incorrect or expired code. Please try again.",
-    "TWO_FACTOR_REQUIRED": "A two-factor code is required.",
     "PLUGIN_DENIED_LOGIN": "Verification failed. Please complete the challenge and try again.",
     "NO_PANEL_ACCESS": "This account has no access to the management panel.",
     "NO_LINKED_ACCOUNT": "No account is linked to this sign-in method yet. Sign in with your password instead.",
@@ -21,16 +19,12 @@
     "LOGIN_EMAIL_NOT_VERIFIED": "This account's email is not verified yet. Confirm your address, then try again.",
     "SOCIAL_ACCOUNT_NOT_LINKED": "This social account is not linked to your account.",
     "NETWORK_ERROR": "Connection error. Please try again.",
+    "REGISTER_EMAIL_REQUIRED": "This account has no email address yet. Sign in with your password to add one, then link your social account from settings.",
+    "MAINTENANCE_MODE_ENABLED": "The site is under maintenance. Please try again later.",
+    "DISABLED_FOR_DEMO": "This is not available on the demo site.",
+    "INVALID_CSRF_TOKEN": "Your session has expired. Reload the page and try again.",
+    "BAD_REQUEST": "The request could not be processed. Please start again.",
     "ban-reason": "Reason: {reason}"
-  },
-  "two-factor": {
-    "title": "Two-Factor Authentication",
-    "description": "Enter the code from your authenticator app to finish signing in.",
-    "code-label": "Authentication code",
-    "submit": "Verify",
-    "submitting": "Verifying...",
-    "success": "Verified! Redirecting...",
-    "back-to-login": "Back to Login"
   },
   "sidebar": {
     "title": "Linked Social Accounts",
@@ -71,7 +65,10 @@
   "complete": {
     "loading": "Finishing sign-in...",
     "subtitle": "Complete any extra verification your account requires.",
-    "invalid-token": "This sign-in link has expired. Please try again from the start."
+    "invalid-token": "This sign-in link has expired. Please try again from the start.",
+    "username-required-title": "Choose a new username",
+    "username-required": "Your account needs a new username before you can sign in. Sign in with your password on the login page to choose one.",
+    "username-required-action": "Go to Login"
   },
   "register": {
     "title": "Create Your Account",

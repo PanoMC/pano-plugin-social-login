@@ -10,8 +10,24 @@ import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
 import com.panomc.plugins.sociallogin.service.OAuthProviderRegistry
 import com.panomc.plugins.sociallogin.service.SocialLoginService
 import io.vertx.core.Vertx
+import io.vertx.kotlin.coroutines.coAwait
+import io.vertx.kotlin.coroutines.dispatcher
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 class SocialLoginPlugin : PanoPlugin() {
+    companion object {
+        /** How often expired OAuth states and pending registrations are deleted. */
+        private const val PURGE_INTERVAL_MS = 10 * 60 * 1000L
+
+        /** The plugin's tables without the platform prefix (the snake-case entity names the DAOs use). */
+        private val TABLES = listOf("social_login_link", "social_login_state")
+    }
+
     private val pluginDatabaseManager by lazy {
         applicationContext.getBean(PluginDatabaseManager::class.java)
     }
@@ -21,6 +37,10 @@ class SocialLoginPlugin : PanoPlugin() {
     }
 
     private var isInitialized = false
+
+    private var purgeTimerId: Long? = null
+    private var purgeScope: CoroutineScope? = null
+    private val purgeRunning = AtomicBoolean(false)
 
     override suspend fun onStart() {
         logger.info("Starting...")
@@ -57,7 +77,58 @@ class SocialLoginPlugin : PanoPlugin() {
 
         removeOrphanLinks()
 
+        purgeExpiredStates()
+        startPurgeTimer()
+
         logger.info("Started!")
+    }
+
+    /**
+     * Deletes expired flow rows: OAuth states and pending registrations (which hold a provider e-mail, name and
+     * avatar). Expired rows are already refused when read; this only keeps the table small. Failures only log.
+     */
+    private suspend fun purgeExpiredStates() {
+        if (!purgeRunning.compareAndSet(false, true)) return
+
+        try {
+            val sqlClient = applicationContext.getBean(DatabaseManager::class.java).getSqlClient()
+            val removed = pluginBeanContext.getBean(SocialLoginService::class.java).purgeExpired(sqlClient)
+            if (removed > 0) logger.debug("Removed $removed expired social login state(s).")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("Could not remove expired social login states: ${e.message}")
+        } finally {
+            purgeRunning.set(false)
+        }
+    }
+
+    @Synchronized
+    private fun startPurgeTimer() {
+        if (purgeTimerId != null) return
+
+        val vertx = applicationContext.getBean(Vertx::class.java)
+        val scope = CoroutineScope(SupervisorJob() + vertx.dispatcher())
+
+        purgeScope = scope
+        purgeTimerId = vertx.setPeriodic(PURGE_INTERVAL_MS) {
+            scope.launch { purgeExpiredStates() }
+        }
+    }
+
+    /** Cancels the purge timer and a purge still running (idempotent). */
+    @Synchronized
+    private fun stopPurgeTimer() {
+        purgeTimerId?.let { timerId ->
+            try {
+                applicationContext.getBean(Vertx::class.java).cancelTimer(timerId)
+            } catch (e: Exception) {
+                logger.warn("Could not cancel the social login purge timer: ${e.message}")
+            }
+        }
+        purgeTimerId = null
+        purgeScope?.cancel()
+        purgeScope = null
     }
 
     /**
@@ -105,17 +176,59 @@ class SocialLoginPlugin : PanoPlugin() {
     }
 
     override suspend fun onStop() {
+        stopPurgeTimer()
         closeProviderClients()
     }
 
     override suspend fun onDisable() {
         isInitialized = false
+        stopPurgeTimer()
         closeProviderClients()
     }
 
     override suspend fun onUninstall() {
         logger.info("Uninstalling...")
 
-        pluginDatabaseManager.uninstall(this)
+        stopPurgeTimer()
+
+        try {
+            pluginDatabaseManager.uninstall(this)
+        } catch (e: Exception) {
+            logger.warn("Platform uninstall of the social login database failed: ${e.message}")
+        }
+
+        dropOwnTables()
+    }
+
+    /**
+     * [PluginDatabaseManager.uninstall] does nothing when it holds no DAOs for this plugin (e.g. the plugin was
+     * disabled before the delete, or its database was never initialised), which would leave the tables behind.
+     * Drops them by name under the platform's table prefix as well (idempotent), and the plugin's scheme version.
+     * Without a configured database (set-up not past its database step) there is nothing to drop.
+     */
+    private suspend fun dropOwnTables() {
+        val databaseManager = try {
+            applicationContext.getBean(DatabaseManager::class.java)
+        } catch (e: Exception) {
+            logger.warn("Could not drop the social login tables: ${e.message}")
+            return
+        }
+
+        val sqlClient = try {
+            databaseManager.getSqlClient()
+        } catch (e: Exception) {
+            logger.info("No database to clean up for social login: ${e.message}")
+            return
+        }
+
+        try {
+            val prefix = databaseManager.getTablePrefix()
+            TABLES.forEach { table ->
+                sqlClient.query("DROP TABLE IF EXISTS `$prefix$table`").execute().coAwait()
+            }
+            databaseManager.schemeVersionDao.deleteByPluginId(pluginId, sqlClient)
+        } catch (e: Exception) {
+            logger.warn("Could not drop the social login tables: ${e.message}")
+        }
     }
 }

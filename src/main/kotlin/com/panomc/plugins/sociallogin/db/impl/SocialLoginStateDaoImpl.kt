@@ -26,7 +26,8 @@ class SocialLoginStateDaoImpl : SocialLoginStateDao() {
                       `payload` TEXT NOT NULL,
                       `expiresAt` BIGINT(20) NOT NULL,
                       PRIMARY KEY (`id`),
-                      UNIQUE KEY `unique_token` (`token`)
+                      UNIQUE KEY `unique_token` (`token`),
+                      KEY `idx_expiresAt` (`expiresAt`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Transient OAuth flow state.';
                 """
             )
@@ -55,9 +56,9 @@ class SocialLoginStateDaoImpl : SocialLoginStateDao() {
         return rows.rowCount() > 0
     }
 
-    override suspend fun deleteExpired(sqlClient: SqlClient) {
+    override suspend fun deleteExpired(sqlClient: SqlClient): Int {
         val query = "DELETE FROM `${getTablePrefix() + tableName}` WHERE `expiresAt` < ?"
-        sqlClient.preparedQuery(query).execute(Tuple.of(System.currentTimeMillis())).coAwait()
+        return sqlClient.preparedQuery(query).execute(Tuple.of(System.currentTimeMillis())).coAwait().rowCount()
     }
 
     override suspend fun uninstall(sqlClient: SqlClient) {

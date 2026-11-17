@@ -11,7 +11,6 @@ import io.vertx.ext.web.validation.ValidationHandler
 import com.panomc.platform.schema.dsl.Parameters
 import com.panomc.platform.schema.dsl.ValidationHandlerBuilder
 import io.vertx.json.schema.SchemaRepository
-import io.vertx.json.schema.common.dsl.Schemas.stringSchema
 import java.net.URLEncoder
 
 /**
@@ -25,13 +24,15 @@ class SocialCallbackAPI(
 ) : Api() {
     override val paths = listOf(Path("/providers/:provider/callback", RouteType.GET))
 
-    // The provider's browser arrives from a foreign origin (and an OAuth form_post callback is a foreign POST).
+    // The provider's browser arrives from a foreign origin. Only GET is registered: a provider set to
+    // `response_mode=form_post` would POST here, which this route does not accept.
     override val browserAccess: BrowserAccess = BrowserAccess.ANY_ORIGIN
 
     override val doc = EndpointDoc(
         summary = "The address registered at the provider: receives the authorization code and redirects the browser to the callback page of the front-end.",
         tag = "auth",
-        binary = true
+        binary = true,
+        errors = listOf(BadRequest::class)
     )
 
     private val frontendUrlMap by lazy {
@@ -40,7 +41,11 @@ class SocialCallbackAPI(
 
     override fun getValidationHandler(schemaRepository: SchemaRepository): ValidationHandler =
         ValidationHandlerBuilder.create(schemaRepository)
-            .pathParameter(Parameters.param("provider", stringSchema()))
+            .pathParameter(providerPathParam())
+            // A denied consent sends `error` without `code` / `state`, so all three are optional here.
+            .queryParameter(Parameters.optionalParam("code", cappedString(SocialLimits.CALLBACK_CODE)))
+            .queryParameter(Parameters.optionalParam("state", cappedString(SocialLimits.CALLBACK_STATE)))
+            .queryParameter(Parameters.optionalParam("error", cappedString(SocialLimits.CALLBACK_ERROR)))
             .build()
 
     override suspend fun handle(context: RoutingContext): Result {
@@ -74,9 +79,12 @@ class SocialCallbackAPI(
             }
         }
 
+        // The address carries the one-time code: never cached, never sent on as a Referer.
         context.response()
             .setStatusCode(302)
             .putHeader("Location", redirectUrl)
+            .putHeader("Cache-Control", "no-store")
+            .putHeader("Referrer-Policy", "no-referrer")
             .end()
 
         return Successful()

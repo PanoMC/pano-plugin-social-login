@@ -41,15 +41,9 @@ function buttonsItem(pano) {
     : { view: 'social-login:SocialLoginButtons' };
 }
 
-/** Provider buttons and `?socialError=` on a login form — the theme's /login or the panel's. */
+/** Provider buttons on a login form — the theme's /login or the panel's. */
 function registerLoginContent(pano) {
   pano.ui.auth.login.onLoad(async (data, event) => {
-    const url = new URL(event.url);
-    const socialError = url.searchParams.get('socialError');
-    if (socialError) {
-      data.error = socialError;
-    }
-
     await loadPublicConfig(event);
 
     if (get(enabledProviders).length > 0) {
@@ -165,8 +159,8 @@ export default class SocialLoginPlugin extends PanoPlugin {
         });
       });
 
-      // User profile — read-only linked accounts (own profile only).
-      pano.ui.profile.cardRows.edit((items) => {
+      // User profile — read-only linked accounts as a card of the page (own profile only).
+      pano.ui.profile.content.edit((items) => {
         items.push({
           id: `${pluginId}-profile-links`,
           view: 'social-login:SocialLinksProfileSidebar',
@@ -179,12 +173,6 @@ export default class SocialLoginPlugin extends PanoPlugin {
 
       // Register page — provider buttons (only if at least one provider is enabled).
       pano.ui.auth.register.onLoad(async (data, event) => {
-        const url = new URL(event.url);
-        const socialError = url.searchParams.get('socialError');
-        if (socialError) {
-          data.error = socialError;
-        }
-
         await loadPublicConfig(event);
 
         if (get(enabledProviders).length > 0) {

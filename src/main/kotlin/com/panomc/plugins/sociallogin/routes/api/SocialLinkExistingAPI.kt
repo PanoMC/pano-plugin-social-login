@@ -4,7 +4,10 @@ import com.panomc.platform.annotation.Endpoint
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.api.event.AuthEventListener
 import com.panomc.platform.db.DatabaseManager
+import com.panomc.platform.error.IpIsBanned
+import com.panomc.platform.error.LoginEmailNotVerified
 import com.panomc.platform.error.LoginIsInvalid
+import com.panomc.platform.error.RegisterEmailRequired
 import com.panomc.platform.error.LoginUserIsBanned
 import com.panomc.platform.error.PluginDeniedLogin
 import com.panomc.platform.error.RateLimited
@@ -52,7 +55,8 @@ class SocialLinkExistingAPI(
         ),
         errors = listOf(
             RateLimited::class, PluginDeniedLogin::class, InvalidFlowState::class, LoginIsInvalid::class,
-            EmailMismatch::class, SocialAccountAlreadyLinked::class, LoginUserIsBanned::class
+            EmailMismatch::class, SocialAccountAlreadyLinked::class, LoginUserIsBanned::class, IpIsBanned::class,
+            LoginEmailNotVerified::class, RegisterEmailRequired::class
         )
     )
 
@@ -73,9 +77,9 @@ class SocialLinkExistingAPI(
             .body(
                 Bodies.json(
                     objectSchema()
-                        .requiredProperty("pendingToken", stringSchema())
-                        .requiredProperty("usernameOrEmail", stringSchema())
-                        .requiredProperty("password", stringSchema())
+                        .requiredProperty("pendingToken", cappedString(SocialLimits.TOKEN))
+                        .requiredProperty("usernameOrEmail", cappedString(SocialLimits.USERNAME_OR_EMAIL))
+                        .requiredProperty("password", cappedString(SocialLimits.PASSWORD))
                 )
             )
             .predicate(RequestPredicate.BODY_REQUIRED)
@@ -138,21 +142,22 @@ class SocialLinkExistingAPI(
         }
 
         // Token use, old link removal and the new link together: a lost race leaves the token and the old link.
-        socialLoginService.inTransaction(sqlClient) { tx ->
-            socialLoginService.consumePendingRegistration(pendingToken, tx) ?: throw InvalidFlowState()
-
-            socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, tx)
-            socialLoginService.addLinkUnique(
-                SocialLoginLink(
-                    userId = userId,
-                    provider = provider.key,
-                    providerUserId = providerUserId,
-                    email = socialEmail,
-                    displayName = displayName,
-                    avatarUrl = avatarUrl
-                ),
-                tx
-            )
+        // A lock conflict between two concurrent links is run once more; a duplicate that is left is a lost race.
+        val link = SocialLoginLink(
+            userId = userId,
+            provider = provider.key,
+            providerUserId = providerUserId,
+            email = socialEmail,
+            displayName = displayName,
+            avatarUrl = avatarUrl
+        )
+        linkDuplicateAsAlreadyLinked {
+            retryOnLockConflict {
+                socialLoginService.inTransaction(sqlClient) { tx ->
+                    socialLoginService.consumePendingRegistration(pendingToken, tx) ?: throw InvalidFlowState()
+                    replaceLink(socialLoginLinkDao, socialLoginService, link, tx)
+                }
+            }
         }
 
         // Step-up auth hooks: 2FA must still gate the session even though the password matched.

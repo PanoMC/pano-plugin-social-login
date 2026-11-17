@@ -42,6 +42,12 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
     companion object {
         private const val OAUTH_STATE_TTL_MS = 10 * 60 * 1000L
         private const val PENDING_REGISTRATION_TTL_MS = 15 * 60 * 1000L
+
+        const val PENDING_INTENT_REGISTER = "register"
+        const val PENDING_INTENT_LINK = "link"
+
+        /** The intent of a pending payload; tokens made before intents existed count as register tokens. */
+        fun pendingIntent(payload: JsonObject): String = payload.getString("intent") ?: PENDING_INTENT_REGISTER
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -104,6 +110,19 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
     }
 
     /**
+     * The link of `(provider, providerUserId)` whose user still exists. A link left behind by a user deleted while
+     * the plugin was off is removed here and treated as no link, so the provider account can be used again.
+     */
+    suspend fun getLiveLink(provider: SocialProvider, providerUserId: String, sqlClient: SqlClient): SocialLoginLink? {
+        val link = socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, providerUserId, sqlClient)
+            ?: return null
+        if (databaseManager.userDao.getById(link.userId, sqlClient) != null) return link
+
+        socialLoginLinkDao.deleteByUserIdAndProvider(link.userId, provider.key, sqlClient)
+        return null
+    }
+
+    /**
      * The OAuth redirect URI for [provider]. Uses the configured `redirectBaseUrl`, falling back
      * to the platform `websiteUrl`. Must exactly match what is registered in the provider console.
      */
@@ -115,6 +134,16 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
 
     // --- OAuth state: random, server-stored, one-time — CSRF protection for the round-trip ---
 
+    /** A new OAuth state: its [token], and the binding secret only a stored-key caller gets (null for a browser). */
+    data class CreatedOAuthState(val token: String, val bindingSecret: String?)
+
+    /** The platform's trusted proxies (`server.trusted-proxies`); empty when the config is not readable. */
+    private fun trustedProxies(): List<String> = try {
+        platformConfigManager.config.server.trustedProxies
+    } catch (_: Throwable) {
+        emptyList()
+    }
+
     suspend fun createOAuthState(
         intent: String,
         provider: SocialProvider,
@@ -122,15 +151,17 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
         userId: Long?,
         context: RoutingContext,
         sqlClient: SqlClient
-    ): String {
+    ): CreatedOAuthState {
         val token = CSRFTokenGenerator.nextToken() + CSRFTokenGenerator.nextToken()
         val payload = JsonObject()
             .put("intent", intent)
             .put("provider", provider.key)
         if (codeVerifier != null) payload.put("codeVerifier", codeVerifier)
         if (userId != null) payload.put("userId", userId)
-        // Bound to the browser that starts the round trip (see OAuthBrowserBinding).
-        OAuthBrowserBinding.issue(context, OAUTH_STATE_TTL_MS)?.let { payload.put("browser", it) }
+        // Bound to the caller that starts the round trip (see OAuthBrowserBinding).
+        val binding = OAuthBrowserBinding.issue(context, token, OAUTH_STATE_TTL_MS, trustedProxies())
+        binding.browserHash?.let { payload.put("browser", it) }
+        binding.secretHash?.let { payload.put("bindingSecretHash", it) }
 
         socialLoginStateDao.deleteExpired(sqlClient)
         socialLoginStateDao.add(
@@ -142,31 +173,46 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
             ),
             sqlClient
         )
-        return token
+        return CreatedOAuthState(token, binding.bindingSecret)
     }
 
     /**
-     * Looks up, deletes (one-time) and validates an OAuth state row. Returns its payload, or null when it is
-     * unknown, used, expired, or this request is not from the browser that started the round trip.
+     * Looks up, validates and deletes (one-time) an OAuth state row. Returns its payload, or null when it is
+     * unknown, used, expired, or this request is not from the caller that started the round trip
+     * ([bindingSecret] is the secret a stored-key caller got from the init answer). The row is deleted only
+     * after the checks, so someone who merely saw the state cannot burn it.
      */
-    suspend fun consumeOAuthState(token: String, context: RoutingContext, sqlClient: SqlClient): JsonObject? {
+    suspend fun consumeOAuthState(
+        token: String,
+        bindingSecret: String?,
+        context: RoutingContext,
+        sqlClient: SqlClient
+    ): JsonObject? {
         val row = socialLoginStateDao.getByToken(token, sqlClient) ?: return null
-        // Atomic single-use: only the caller whose DELETE actually removed the row proceeds.
-        // A concurrent request for the same token loses the race and gets null.
-        if (!socialLoginStateDao.deleteByToken(token, sqlClient)) return null
         if (row.kind != SocialLoginState.Kind.OAUTH_STATE.name) return null
         if (row.expiresAt < System.currentTimeMillis()) return null
         val payload = JsonObject(row.payload)
-        if (!OAuthBrowserBinding.matches(context, payload.getString("browser"))) return null
-        if (payload.getString("browser") != null) OAuthBrowserBinding.clear(context)
+        val browserHash = payload.getString("browser")
+        if (!OAuthBrowserBinding.matches(context, token, browserHash, payload.getString("bindingSecretHash"), bindingSecret)) {
+            return null
+        }
+        // Atomic single-use: only the caller whose DELETE actually removed the row proceeds.
+        // A concurrent request for the same token loses the race and gets null.
+        if (!socialLoginStateDao.deleteByToken(token, sqlClient)) return null
+        if (browserHash != null) OAuthBrowserBinding.clear(context, token, trustedProxies())
         return payload
     }
 
     // --- Pending registration: a verified social profile awaiting a username/password form ---
 
-    suspend fun createPendingRegistration(profile: SocialProfile, sqlClient: SqlClient): String {
+    /**
+     * [intent] says what the token may be used for: [PENDING_INTENT_REGISTER] (the register form) or
+     * [PENDING_INTENT_LINK] (proving an existing account with its password).
+     */
+    suspend fun createPendingRegistration(profile: SocialProfile, intent: String, sqlClient: SqlClient): String {
         val token = CSRFTokenGenerator.nextToken() + CSRFTokenGenerator.nextToken()
         val payload = JsonObject()
+            .put("intent", intent)
             .put("provider", profile.provider.key)
             .put("providerUserId", profile.providerUserId)
             .put("email", profile.email)
@@ -232,18 +278,20 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
     /**
      * Runs the platform's [AuthEventListener.onBeforeLogin] hooks — the same ones the core LoginAPI
      * fires — to detect whether the session must pause for a step-up (2FA, …). Returns the first
-     * Deny, or null to proceed. Callers that get a Deny should escalate to the platform's
-     * pending-session mechanism (`AuthProvider.createPendingSession` + `/api/v1/auth/complete-pending`)
-     * rather than handling the challenge themselves; social-login stays agnostic of the challenge.
+     * decision that is not Allow (Deny, RequireUsername, …), or null to proceed. Callers that get one
+     * escalate to the platform's pending-session mechanism (`AuthProvider.createPendingSession` +
+     * `/api/v1/auth/complete-pending`), which re-runs the same hooks and answers each decision the way
+     * the core login does; social-login stays agnostic of the challenge.
      */
     suspend fun runOnBeforeLogin(
         user: User,
         context: RoutingContext,
         sqlClient: SqlClient
-    ): AuthEventListener.LoginDecision.Deny? {
+    ): AuthEventListener.LoginDecision? {
         checkCanSignIn(user, context, sqlClient)
 
-        return authProvider.runOnBeforeLogin(user, context, sqlClient) as? AuthEventListener.LoginDecision.Deny
+        return authProvider.runOnBeforeLogin(user, context, sqlClient)
+            ?.takeIf { it !is AuthEventListener.LoginDecision.Allow }
     }
 
     // --- Session issuance ---
@@ -279,6 +327,10 @@ class SocialLoginService(private val plugin: SocialLoginPlugin) {
 
         val session = authProvider.issueSession(user.username, context, sqlClient)
         databaseManager.userDao.updateLastLoginDate(userId, sqlClient)
+
+        // The same after-login hooks as the core login.
+        val updatedUser = databaseManager.userDao.getById(userId, sqlClient) ?: user
+        authProvider.runOnAfterLogin(updatedUser, context, sqlClient)
 
         return session
     }

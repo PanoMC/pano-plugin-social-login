@@ -139,6 +139,7 @@
   import ProviderIcon from '../../components/ProviderIcon.svelte';
   import { onMount } from 'svelte';
   import { goto } from '@panomc/sdk/svelte';
+  import { api } from '@panomc/sdk/plugin-api';
 
   const _ = pluginText(derived, i18n);
   const pano = getHost();
@@ -216,16 +217,15 @@
     error = null;
 
     try {
-      const res = await fetch('/api/plugins/pano-plugin-social-login/link-existing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Through the plugin-scoped client: it sends X-CSRF-Token, which core requires once a session cookie exists.
+      const body = await api.post({
+        path: '/link-existing',
+        body: {
           pendingToken: token,
           usernameOrEmail,
           password,
-        }),
+        },
       });
-      const body = await res.json();
 
       if (body.error) {
         error = resolveError(body.error.code);

@@ -31,7 +31,10 @@ class SocialAuthInitAPI(
     override val doc = EndpointDoc(
         summary = "Starts a sign-in or registration with a provider and answers the address of the provider's consent page.",
         tag = "auth",
-        response = objectSchema().requiredProperty("redirectUrl", stringSchema()),
+        response = objectSchema()
+            .requiredProperty("redirectUrl", stringSchema())
+            // Only for a front-end with a stored key: send it back as `bindingSecret` to `/process`.
+            .optionalProperty("bindingSecret", stringSchema()),
         errors = listOf(NotFound::class, ProviderNotEnabled::class)
     )
 
@@ -62,10 +65,14 @@ class SocialAuthInitAPI(
         val codeVerifier = if (oauthProvider.usesPkce) PkceUtil.generateVerifier() else null
         val codeChallenge = codeVerifier?.let { PkceUtil.challengeFor(it) }
 
-        val state = socialLoginService.createOAuthState("auth", provider, codeVerifier, null, context, sqlClient)
+        val created = socialLoginService.createOAuthState("auth", provider, codeVerifier, null, context, sqlClient)
         val redirectUri = socialLoginService.resolveRedirectUri(provider)
-        val authUrl = oauthProvider.buildAuthorizationUrl(redirectUri, state, codeChallenge)
+        val authUrl = oauthProvider.buildAuthorizationUrl(redirectUri, created.token, codeChallenge)
 
-        return Successful(mapOf("redirectUrl" to authUrl))
+        // A stored-key front-end gets the secret that binds the state to it; a browser is bound by its cookie.
+        val answer = mutableMapOf<String, Any?>("redirectUrl" to authUrl)
+        created.bindingSecret?.let { answer["bindingSecret"] = it }
+
+        return Successful(answer)
     }
 }

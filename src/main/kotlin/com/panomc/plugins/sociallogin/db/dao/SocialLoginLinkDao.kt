@@ -24,4 +24,7 @@ abstract class SocialLoginLinkDao : Dao<SocialLoginLink>(SocialLoginLink::class.
     abstract suspend fun deleteByUserIdAndProvider(userId: Long, provider: String, sqlClient: SqlClient)
 
     abstract suspend fun deleteByUserId(userId: Long, sqlClient: SqlClient)
+
+    /** Deletes links whose Pano user no longer exists (deleted while the plugin was off). Returns how many. */
+    abstract suspend fun deleteOrphans(sqlClient: SqlClient): Int
 }

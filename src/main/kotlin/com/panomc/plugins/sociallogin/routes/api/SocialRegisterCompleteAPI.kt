@@ -141,6 +141,11 @@ class SocialRegisterCompleteAPI(
         val payload = socialLoginService.peekPendingRegistration(pendingToken, sqlClient)
             ?: throw InvalidFlowState()
 
+        // An "account exists" token only proves the e-mail of an existing account; it never registers one.
+        if (SocialLoginService.pendingIntent(payload) != SocialLoginService.PENDING_INTENT_REGISTER) {
+            throw InvalidFlowState()
+        }
+
         val provider = SocialProvider.fromKey(payload.getString("provider")) ?: throw InvalidFlowState()
         val providerUserId = payload.getString("providerUserId")
         val socialEmail = payload.getString("email")
@@ -151,8 +156,7 @@ class SocialRegisterCompleteAPI(
         RegisterUtil.validateForm(username, email, password, passwordRepeat, agreement)
 
         // Guard against the social account having been linked between `process` and now.
-        val alreadyLinked =
-            socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, providerUserId, sqlClient)
+        val alreadyLinked = socialLoginService.getLiveLink(provider, providerUserId, sqlClient)
         if (alreadyLinked != null) {
             throw SocialAccountAlreadyLinked()
         }
@@ -164,19 +168,22 @@ class SocialRegisterCompleteAPI(
             throw RegisterEmailNotAvailable()
         }
 
-        // The form is fine: now the flow is used up (one time, a concurrent submit loses here).
-        socialLoginService.consumePendingRegistration(pendingToken, sqlClient) ?: throw InvalidFlowState()
-
         // Trust the email only when the provider verified it AND it is the one being registered.
         val emailVerified = socialEmailVerified && socialEmail != null && socialEmail.equals(email, ignoreCase = true)
+        // Like the core registration: without required verification the address counts as verified.
+        val markEmailVerified = emailVerified || !platformConfigManager.config.auth.requireEmailVerification
 
         val remoteIP = authProvider.getRemoteIP(context)
 
-        // Account, verified mark and link together: a lost race on the link leaves no account behind.
+        // Token use, account, verified mark and link together: a lost race on the link leaves no account
+        // behind and the token still usable.
         val userId = socialLoginService.inTransaction(sqlClient) { tx ->
+            // The form is fine: now the flow is used up (one time, a concurrent submit loses here).
+            socialLoginService.consumePendingRegistration(pendingToken, tx) ?: throw InvalidFlowState()
+
             val newUserId = RegisterUtil.register(databaseManager, tx, username, email, password, remoteIP)
 
-            if (emailVerified) {
+            if (markEmailVerified) {
                 databaseManager.userDao.makeEmailVerifiedById(newUserId, tx)
             }
 

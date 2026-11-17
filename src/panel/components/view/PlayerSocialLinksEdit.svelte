@@ -51,6 +51,9 @@
   import { _, PROVIDER_META } from '../../../main.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import { api } from '@panomc/sdk/plugin-api';
+  import { showErrorToast } from '../../toast.util.js';
+  import { socialLinksChanged } from '../../linksChanged.js';
+  import { PLUGIN_ID } from '../../../theme/lib/text.js';
 
   export let playerData;
   export let onHookRegister;
@@ -104,6 +107,8 @@
   async function save() {
     if (!isDirty) return;
     loading = true;
+    const unlinked = [];
+    const failed = [];
     try {
       for (const provider of pendingUnlinks) {
         const res = await api.panel.post({
@@ -112,14 +117,40 @@
         });
         if (res && res.error) {
           console.error('[pano-plugin-social-login] Unlink failed:', res.error.code);
+          failed.push({ provider, code: res.error.code });
+        } else {
+          unlinked.push(provider);
         }
       }
-      links = links.filter((l) => !pendingUnlinks.includes(l.provider));
-      pendingUnlinks = [];
     } catch (e) {
       console.error('[pano-plugin-social-login] Save error:', e);
+      for (const provider of pendingUnlinks) {
+        if (!unlinked.includes(provider) && !failed.some((f) => f.provider === provider)) {
+          failed.push({ provider, code: 'NETWORK_ERROR' });
+        }
+      }
     } finally {
+      // Drop only the links that really went; failed ones stay listed (the modal closes regardless).
+      links = links.filter((l) => !unlinked.includes(l.provider));
+      pendingUnlinks = [];
       loading = false;
+    }
+
+    if (unlinked.length > 0) {
+      socialLinksChanged.set({ username: playerData.username, at: Date.now() });
+    }
+
+    if (failed.length > 0) {
+      for (const { provider, code } of failed) {
+        const name = PROVIDER_META[provider]?.name || provider;
+        const key =
+          code === 'SOCIAL_ACCOUNT_NOT_LINKED'
+            ? 'panel-edit.error.SOCIAL_ACCOUNT_NOT_LINKED'
+            : 'panel-edit.unlink-error';
+        await showErrorToast(`plugins.${PLUGIN_ID}.${key}`, { provider: name });
+      }
+      // The edit-player modal catches and logs a thrown save; the toast above is what the admin sees.
+      throw new Error(`Unlink failed for: ${failed.map((f) => f.provider).join(', ')}`);
     }
   }
 </script>

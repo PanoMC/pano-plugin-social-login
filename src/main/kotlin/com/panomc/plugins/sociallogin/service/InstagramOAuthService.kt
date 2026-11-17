@@ -5,8 +5,14 @@ import com.panomc.plugins.sociallogin.config.SocialLoginConfig
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
+import io.vertx.core.json.JsonArray
+import io.vertx.core.json.JsonObject
 import io.vertx.kotlin.coroutines.coAwait
 
+/**
+ * Instagram API with Instagram Login. Only Instagram Business and Creator accounts can sign in this way; a
+ * personal account is refused by Instagram itself.
+ */
 class InstagramOAuthService(
     configManager: PluginConfigManager<SocialLoginConfig>,
     vertx: Vertx
@@ -62,7 +68,12 @@ class InstagramOAuthService(
                 "Instagram token exchange failed: ${tokenBody.getString("error_message", tokenBody.getString("error_description", "unknown error"))}"
             )
         }
-        val accessToken = tokenBody.getString("access_token")
+        // Meta documents `{"data":[{"access_token","user_id","permissions"}]}`; older answers are flat.
+        val tokenData = (tokenBody.getValue("data") as? JsonArray)
+            ?.takeIf { !it.isEmpty }
+            ?.let { it.getValue(0) as? JsonObject }
+            ?: tokenBody
+        val accessToken = tokenData.getString("access_token")
             ?: throw RuntimeException("Instagram token exchange returned no access_token")
 
         debugLog("Fetching user info...")
@@ -83,7 +94,7 @@ class InstagramOAuthService(
 
         val user = userResponse.bodyAsJsonObject()
         val id = user.getString("id")
-            ?: tokenBody.getValue("user_id")?.toString()
+            ?: tokenData.getValue("user_id")?.toString()
             ?: throw RuntimeException("Instagram user response had no id")
         val username = user.getString("username")
 

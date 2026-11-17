@@ -97,6 +97,13 @@ class SocialLoginLinkDaoImpl : SocialLoginLinkDao() {
         sqlClient.preparedQuery(query).execute(Tuple.of(userId)).coAwait()
     }
 
+    override suspend fun deleteOrphans(sqlClient: SqlClient): Int {
+        // The core user table: entity `User` under the same table prefix.
+        val query = "DELETE FROM `${getTablePrefix() + tableName}` " +
+            "WHERE `userId` NOT IN (SELECT `id` FROM `${getTablePrefix()}user`)"
+        return sqlClient.query(query).execute().coAwait().rowCount()
+    }
+
     override suspend fun uninstall(sqlClient: SqlClient) {
         sqlClient.query("DROP TABLE IF EXISTS `${getTablePrefix() + tableName}`").execute().coAwait()
     }

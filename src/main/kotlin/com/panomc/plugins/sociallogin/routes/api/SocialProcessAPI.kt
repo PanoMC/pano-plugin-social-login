@@ -89,6 +89,8 @@ class SocialProcessAPI(
                         .requiredProperty("provider", stringSchema())
                         .requiredProperty("code", stringSchema())
                         .requiredProperty("state", stringSchema())
+                        // Required for a state started by a front-end with a stored key: the init answer's value.
+                        .optionalProperty("bindingSecret", stringSchema())
                 )
             )
             .predicate(RequestPredicate.BODY_REQUIRED)
@@ -100,6 +102,7 @@ class SocialProcessAPI(
         val providerKey = body.getString("provider")
         val code = body.getString("code")
         val stateToken = body.getString("state")
+        val bindingSecret = body.getString("bindingSecret")
 
         val provider = SocialProvider.fromKey(providerKey) ?: throw NotFound()
         val oauthProvider = oauthRegistry.get(provider)
@@ -109,7 +112,7 @@ class SocialProcessAPI(
 
         val sqlClient = getSqlClient()
 
-        val statePayload = socialLoginService.consumeOAuthState(stateToken, context, sqlClient)
+        val statePayload = socialLoginService.consumeOAuthState(stateToken, bindingSecret, context, sqlClient)
             ?: throw InvalidFlowState()
 
         // The state must have been issued for this same provider.
@@ -153,25 +156,27 @@ class SocialProcessAPI(
             throw InvalidFlowState()
         }
 
-        val existingByAccount =
-            socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, profile.providerUserId, sqlClient)
+        val existingByAccount = socialLoginService.getLiveLink(provider, profile.providerUserId, sqlClient)
         if (existingByAccount != null && existingByAccount.userId != userId) {
             throw SocialAccountAlreadyLinked()
         }
 
-        // Replace any previous link for this provider on this account with the just-authorized one.
-        socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, sqlClient)
-        socialLoginService.addLinkUnique(
-            SocialLoginLink(
-                userId = userId,
-                provider = provider.key,
-                providerUserId = profile.providerUserId,
-                email = profile.email,
-                displayName = profile.displayName,
-                avatarUrl = profile.avatarUrl
-            ),
-            sqlClient
-        )
+        // Replace any previous link for this provider on this account with the just-authorized one,
+        // in one transaction so a lost race does not leave the account without its old link.
+        socialLoginService.inTransaction(sqlClient) { tx ->
+            socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, tx)
+            socialLoginService.addLinkUnique(
+                SocialLoginLink(
+                    userId = userId,
+                    provider = provider.key,
+                    providerUserId = profile.providerUserId,
+                    email = profile.email,
+                    displayName = profile.displayName,
+                    avatarUrl = profile.avatarUrl
+                ),
+                tx
+            )
+        }
 
         return Successful(mapOf("action" to "link", "provider" to provider.key))
     }
@@ -182,15 +187,15 @@ class SocialProcessAPI(
         profile: SocialProfile,
         sqlClient: SqlClient
     ): Result {
-        val existing =
-            socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, profile.providerUserId, sqlClient)
+        // A link whose user was deleted while the plugin was off is dropped here and counts as no link.
+        val existing = socialLoginService.getLiveLink(provider, profile.providerUserId, sqlClient)
 
         // Linked account → run the core pre-login hooks before issuing a session.
         if (existing != null) {
             val user = databaseManager.userDao.getById(existing.userId, sqlClient) ?: throw NotFound()
-            val deny = socialLoginService.runOnBeforeLogin(user, context, sqlClient)
-            if (deny != null) {
-                // ANY deny (2FA, future step-ups, …) escalates to the platform's pending-session
+            val decision = socialLoginService.runOnBeforeLogin(user, context, sqlClient)
+            if (decision != null) {
+                // ANY non-Allow decision (2FA, RequireUsername, future step-ups, …) escalates to the platform's pending-session
                 // mechanism. social-login stays agnostic of what the challenge is: the theme's
                 // login form + installed login-content plugins drive the UI, and
                 // POST /api/v1/auth/complete-pending re-runs the same hooks with the user's input.
@@ -217,7 +222,12 @@ class SocialProcessAPI(
         if (profile.emailVerified && !profile.email.isNullOrEmpty() &&
             databaseManager.userDao.isEmailExists(profile.email, sqlClient)
         ) {
-            val pendingToken = socialLoginService.createPendingRegistration(profile, sqlClient)
+            // A link-only token: `/register` refuses it, `/link-existing` accepts it.
+            val pendingToken = socialLoginService.createPendingRegistration(
+                profile,
+                SocialLoginService.PENDING_INTENT_LINK,
+                sqlClient
+            )
             return Successful(
                 mapOf(
                     "action" to "account-exists",
@@ -229,7 +239,11 @@ class SocialProcessAPI(
         }
 
         // Otherwise hand the user a pending token and send them to the registration form.
-        val pendingToken = socialLoginService.createPendingRegistration(profile, sqlClient)
+        val pendingToken = socialLoginService.createPendingRegistration(
+            profile,
+            SocialLoginService.PENDING_INTENT_REGISTER,
+            sqlClient
+        )
         return Successful(
             mapOf(
                 "action" to "register",

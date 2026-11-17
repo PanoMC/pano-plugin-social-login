@@ -57,24 +57,48 @@ class OAuthBrowserBindingTest {
 
     @Test
     fun `the starting browser matches, another browser does not`() {
+        val state = "state-1"
         val start = FakeExchange()
-        val hash = OAuthBrowserBinding.issue(start.context, 600_000)
+        val issued = OAuthBrowserBinding.issue(start.context, state, 600_000)
+        val hash = issued.browserHash
         assertNotNull(hash)
+        assertNull(issued.bindingSecret)
         assertTrue(start.set.single().isHttpOnly)
 
-        assertTrue(OAuthBrowserBinding.matches(start.browserAfter().context, hash))
-        assertFalse(OAuthBrowserBinding.matches(FakeExchange().context, hash))
-        assertFalse(OAuthBrowserBinding.matches(FakeExchange(mapOf(OAuthBrowserBinding.COOKIE_NAME to "x")).context, hash))
+        assertTrue(OAuthBrowserBinding.matches(start.browserAfter().context, state, hash, null, null))
+        assertFalse(OAuthBrowserBinding.matches(FakeExchange().context, state, hash, null, null))
+        assertFalse(
+            OAuthBrowserBinding.matches(FakeExchange(mapOf(OAuthBrowserBinding.cookieName(state) to "x")).context, state, hash, null, null)
+        )
     }
 
     @Test
-    fun `a stored-key state is finished only by a stored-key request`() {
+    fun `parallel flows keep their own cookies`() {
+        val first = FakeExchange()
+        val firstHash = OAuthBrowserBinding.issue(first.context, "state-a", 600_000).browserHash
+        val second = FakeExchange()
+        val secondHash = OAuthBrowserBinding.issue(second.context, "state-b", 600_000).browserHash
+        val browser = FakeExchange(first.set.associate { it.name to it.value } + second.set.associate { it.name to it.value })
+
+        assertTrue(OAuthBrowserBinding.matches(browser.context, "state-a", firstHash, null, null))
+        assertTrue(OAuthBrowserBinding.matches(browser.context, "state-b", secondHash, null, null))
+    }
+
+    @Test
+    fun `a stored-key state is finished only by a stored-key request with its binding secret`() {
         val key = FrontendKeyRef(3L, "headless")
         val start = FakeExchange(key = key)
-        assertNull(OAuthBrowserBinding.issue(start.context, 600_000))
+        val issued = OAuthBrowserBinding.issue(start.context, "state-k", 600_000)
+        assertNull(issued.browserHash)
+        assertNotNull(issued.secretHash)
+        assertNotNull(issued.bindingSecret)
         assertTrue(start.set.isEmpty())
 
-        assertTrue(OAuthBrowserBinding.matches(FakeExchange(key = key).context, null))
-        assertFalse(OAuthBrowserBinding.matches(FakeExchange().context, null))
+        val stored = FakeExchange(key = key).context
+        assertTrue(OAuthBrowserBinding.matches(stored, "state-k", null, issued.secretHash, issued.bindingSecret))
+        assertFalse(OAuthBrowserBinding.matches(stored, "state-k", null, issued.secretHash, null))
+        assertFalse(OAuthBrowserBinding.matches(stored, "state-k", null, issued.secretHash, "wrong"))
+        assertFalse(OAuthBrowserBinding.matches(FakeExchange().context, "state-k", null, issued.secretHash, issued.bindingSecret))
+        assertFalse(OAuthBrowserBinding.matches(stored, "state-k", null, null, null))
     }
 }

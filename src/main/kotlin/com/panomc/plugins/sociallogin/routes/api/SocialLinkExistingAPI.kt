@@ -97,8 +97,14 @@ class SocialLinkExistingAPI(
             throw PluginDeniedLogin(it.errorKey, it.extras)
         }
 
-        val payload = socialLoginService.consumePendingRegistration(pendingToken, sqlClient)
+        // Only read here: a wrong password must not use up the flow. It is consumed once the link is made.
+        val payload = socialLoginService.peekPendingRegistration(pendingToken, sqlClient)
             ?: throw InvalidFlowState()
+
+        // A token handed out for the register form is not a link token (tokens without an intent stay usable).
+        if (payload.getString("intent") == SocialLoginService.PENDING_INTENT_REGISTER) {
+            throw InvalidFlowState()
+        }
 
         val provider = SocialProvider.fromKey(payload.getString("provider")) ?: throw InvalidFlowState()
         val providerUserId = payload.getString("providerUserId")
@@ -125,24 +131,29 @@ class SocialLinkExistingAPI(
             throw EmailMismatch()
         }
 
-        val existingByAccount =
-            socialLoginLinkDao.getByProviderAndProviderUserId(provider.key, providerUserId, sqlClient)
+        // A link whose user was deleted while the plugin was off is dropped here and counts as no link.
+        val existingByAccount = socialLoginService.getLiveLink(provider, providerUserId, sqlClient)
         if (existingByAccount != null && existingByAccount.userId != userId) {
             throw SocialAccountAlreadyLinked()
         }
 
-        socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, sqlClient)
-        socialLoginService.addLinkUnique(
-            SocialLoginLink(
-                userId = userId,
-                provider = provider.key,
-                providerUserId = providerUserId,
-                email = socialEmail,
-                displayName = displayName,
-                avatarUrl = avatarUrl
-            ),
-            sqlClient
-        )
+        // Token use, old link removal and the new link together: a lost race leaves the token and the old link.
+        socialLoginService.inTransaction(sqlClient) { tx ->
+            socialLoginService.consumePendingRegistration(pendingToken, tx) ?: throw InvalidFlowState()
+
+            socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, tx)
+            socialLoginService.addLinkUnique(
+                SocialLoginLink(
+                    userId = userId,
+                    provider = provider.key,
+                    providerUserId = providerUserId,
+                    email = socialEmail,
+                    displayName = displayName,
+                    avatarUrl = avatarUrl
+                ),
+                tx
+            )
+        }
 
         // Step-up auth hooks: 2FA must still gate the session even though the password matched.
         // Symmetric to SocialProcessAPI — any Deny escalates to the platform's pending-session flow
@@ -150,8 +161,8 @@ class SocialLinkExistingAPI(
         // proved password ownership); the user can complete or abandon — abandoning leaves them
         // linked but unauthenticated, which they can resolve via a normal /login attempt.
         val user = databaseManager.userDao.getById(userId, sqlClient) ?: throw LoginIsInvalid()
-        val deny = socialLoginService.runOnBeforeLogin(user, context, sqlClient)
-        if (deny != null) {
+        val decision = socialLoginService.runOnBeforeLogin(user, context, sqlClient)
+        if (decision != null) {
             val pendingToken = authProvider.createPendingSession(
                 userId,
                 "social-login:${provider.key}",

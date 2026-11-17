@@ -8,6 +8,7 @@ import com.panomc.platform.model.*
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.db.dao.SocialLoginLinkDao
+import com.panomc.plugins.sociallogin.error.SocialAccountNotLinked
 import com.panomc.plugins.sociallogin.log.UnlinkedSocialAccountLog
 import com.panomc.plugins.sociallogin.permission.ManageSocialLinksPermission
 import io.vertx.ext.web.RoutingContext
@@ -60,6 +61,8 @@ class PanelUnlinkPlayerSocialAPI(
         val sqlClient = getSqlClient()
 
         val userId = databaseManager.userDao.getUserIdFromUsername(username, sqlClient) ?: throw NotFound()
+
+        socialLoginLinkDao.getByUserIdAndProvider(userId, provider.key, sqlClient) ?: throw SocialAccountNotLinked()
 
         socialLoginLinkDao.deleteByUserIdAndProvider(userId, provider.key, sqlClient)
 

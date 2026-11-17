@@ -65,6 +65,9 @@
           </div>
         {/each}
       </div>
+      {#if errorMessage}
+        <div class="social-login-social-account-links__error alert alert-danger py-2 mt-2 small">{errorMessage}</div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -99,6 +102,7 @@
   import { _ as i18n } from '@panomc/sdk/utils/language';
   import { pluginText } from '../../lib/text.js';
   import { PROVIDER_META } from '../../lib/providers.js';
+  import { resolveSocialError } from '../../lib/errors.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
 
   const _ = pluginText(derived, i18n);
@@ -114,23 +118,28 @@
   );
 
   let busyProvider = $state(null);
+  let errorMessage = $state('');
 
   async function startLink(provider) {
     busyProvider = provider;
+    errorMessage = '';
     try {
       const res = await api.get({ path: `/providers/${provider}/link` });
       if (res?.redirectUrl) {
         window.location.href = res.redirectUrl;
         return;
       }
+      errorMessage = resolveSocialError($_, res?.error?.code);
     } catch (e) {
       console.error('[pano-plugin-social-login] Link init failed', e);
+      errorMessage = $_('error.generic');
     }
     busyProvider = null;
   }
 
   async function unlink(provider) {
     busyProvider = provider;
+    errorMessage = '';
     try {
       const res = await api.post({
         path: '/unlink',
@@ -140,8 +149,10 @@
         window.location.reload();
         return;
       }
+      errorMessage = resolveSocialError($_, res.error.code);
     } catch (e) {
       console.error('[pano-plugin-social-login] Unlink failed', e);
+      errorMessage = $_('error.generic');
     }
     busyProvider = null;
   }

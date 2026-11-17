@@ -157,8 +157,9 @@
 <script>
   import { derived } from 'svelte/store';
   import { _ as i18n } from '@panomc/sdk/utils/language';
+  import ApiUtil from '@panomc/sdk/utils/api';
   import { pluginText } from '../lib/text.js';
-  import { resolveSocialError } from '../lib/errors.js';
+  import { resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
   import { finishLogin, sitePath } from '../lib/signIn.js';
   import { getHost } from '../lib/host.js';
   import { onMount, tick } from 'svelte';
@@ -212,14 +213,11 @@
     await tick();
 
     try {
-      const res = await fetch('/api/v1/auth/complete-pending', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pendingToken: token }),
-      });
-      const body = await res.json();
+      // Through the SDK: it sends X-CSRF-Token and resolves the API base. It calls the global fetch, so the
+      // login-content widgets' fetch interceptors (2FA modal, captcha) still see the request.
+      const body = await ApiUtil.post({ path: '/auth/complete-pending', body: { pendingToken: token } });
 
-      if (body.error) {
+      if (body?.error) {
         // PLUGIN_DENIED_LOGIN (e.g. 2FA cancelled) and other failures land here. Token-side errors
         // (expired/missing) come back as INVALID_TOKEN. Generic surface — challenge UIs would've
         // intercepted the response themselves before we got here on success.
@@ -244,16 +242,19 @@
     const code = body.error?.code;
     const reason = body.error?.details?.reason;
     if (code === 'PLUGIN_DENIED_LOGIN' && reason) {
-      // Translate plugin-i18n reason key if available; otherwise show the raw reason.
+      // The reason is a full i18n key of the plugin that denied (e.g. `plugins.pano-plugin-auth-guard.errors.…`):
+      // translate it unprefixed. A missing translation comes back as the key itself; fall back to the generic text.
       try {
-        return $_(reason);
+        const msg = $i18n(reason);
+        if (msg && msg !== reason) return msg;
       } catch (e) {
-        return reason;
+        // fall through
       }
+      return $_('error.generic');
     }
     if (code === 'INVALID_TOKEN') {
       return $_('complete.invalid-token');
     }
-    return resolveSocialError($_, code);
+    return resolveSocialErrorBody($_, body.error);
   }
 </script>

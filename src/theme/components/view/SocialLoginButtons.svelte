@@ -121,15 +121,14 @@
     loadingProvider = provider;
     errorMessage = '';
     try {
-      const res = await fetch(`/api/plugins/pano-plugin-social-login/providers/${provider}/auth`);
-      const body = await res.json();
+      const body = await api.get({ path: `/providers/${provider}/auth` });
 
-      if (!body.error && body.redirectUrl) {
+      if (!body?.error && body?.redirectUrl) {
         window.location.href = body.redirectUrl;
         return;
       }
 
-      errorMessage = resolveSocialError($_, body.error?.code);
+      errorMessage = resolveSocialError($_, body?.error?.code);
     } catch (e) {
       console.error('[pano-plugin-social-login] Auth init failed', e);
       errorMessage = $_('error.generic');

@@ -4,6 +4,9 @@
       {$_('plugin-settings.title')}
     </div>
     <div class="card-body">
+      {#if !hasProviders}
+        <div class="alert alert-danger mb-0" role="alert">{$_('plugin-settings.load-error')}</div>
+      {:else}
       <div class="alert alert-info d-flex align-items-start mb-4" role="alert">
         <i class="fas fa-circle-info me-3 mt-1" aria-hidden="true"></i>
         <div>
@@ -87,6 +90,9 @@
                             <li>{step}</li>
                           {/each}
                         </ol>
+                        {#if key === 'instagram'}
+                          <div class="mb-2">{$_('plugin-settings.instagram-hint')}</div>
+                        {/if}
                         {#if meta?.scopes}
                           <div>
                             <strong>{$_('plugin-settings.guide.scopes-label')}:</strong>
@@ -248,7 +254,7 @@
                     bind:this={revealPasswordInput}
                     class:border-danger={revealError} />
                   {#if revealError}
-                    <small class="text-danger d-block mt-2">{$_('plugin-settings.reveal-error')}</small>
+                    <small class="text-danger d-block mt-2">{$_(revealError)}</small>
                   {/if}
                 </div>
               </div>
@@ -300,6 +306,7 @@
           {$_('plugin-settings.save')}
         </button>
       </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -309,11 +316,15 @@
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import { api } from '@panomc/sdk/plugin-api';
   import { showSuccessToast, showErrorToast } from '../../toast.util.js';
+  import { PLUGIN_ID } from '../../../theme/lib/text.js';
 
   export let addon;
 
   const providerKeys = ['google', 'discord', 'facebook', 'twitter', 'github', 'twitch', 'instagram'];
   const originPlaceholder = typeof window !== 'undefined' ? window.location.origin : '';
+
+  // The host toast translates the full key, so plugin texts need the `plugins.<id>.` prefix.
+  const pluginKey = (key) => `plugins.${PLUGIN_ID}.${key}`;
 
   function buildForm() {
     const providers = {};
@@ -339,6 +350,7 @@
   }
 
   let form = buildForm();
+  $: hasProviders = Object.keys(form.providers).length > 0;
   let expandedProvider = providerKeys.find((key) => form.providers[key]?.enabled) || null;
   let saving = false;
 
@@ -391,6 +403,7 @@
   let revealModal;
   let revealPasswordInput;
   let revealPassword = '';
+  /** @type {string | false} plugin text key of the reveal error, or false */
   let revealError = false;
   let revealLoading = false;
 
@@ -423,7 +436,7 @@
       });
 
       if (res.error) {
-        revealError = true;
+        revealError = revealErrorKey(res.error.code);
         revealLoading = false;
         return;
       }
@@ -438,10 +451,24 @@
       closeRevealModal();
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to reveal secret', e);
-      revealError = true;
+      revealError = 'error.generic';
     } finally {
       revealLoading = false;
     }
+  }
+
+  function revealErrorKey(code) {
+    if (code === 'INVALID_PASSWORD') return 'plugin-settings.reveal-error';
+    if (code === 'RATE_LIMITED' || code === 'NETWORK_ERROR') return `error.${code}`;
+    return 'error.generic';
+  }
+
+  function saveErrorKey(error) {
+    if (error?.code === 'PROVIDER_CREDENTIALS_REQUIRED' || error?.code === 'INVALID_REDIRECT_BASE_URL') {
+      return `plugin-settings.error.${error.code}`;
+    }
+    if (error?.code === 'RATE_LIMITED' || error?.code === 'NETWORK_ERROR') return `error.${error.code}`;
+    return 'plugin-settings.save-error';
   }
 
   async function copyToClipboard(text) {
@@ -471,7 +498,26 @@
         }
       }
 
-      await api.panel.put({ path: '/config', body });
+      const res = await api.panel.put({ path: '/config', body });
+      if (res?.error) {
+        // Keep the form as typed (secrets included) so the admin can fix it and retry.
+        const providerKey = res.error.details?.provider;
+        const provider = form.providers[providerKey]?.displayName || PROVIDER_META[providerKey]?.name || providerKey || '';
+        await showErrorToast(pluginKey(saveErrorKey(res.error)), { provider });
+        return;
+      }
+
+      // Reload from the server so derived values (e.g. each provider's redirect URI) are current.
+      const fresh = await api.panel.get({ path: '/config' });
+      if (fresh && !fresh.error && Array.isArray(fresh.providers)) {
+        const expanded = expandedProvider;
+        addon.config = fresh;
+        form = buildForm();
+        expandedProvider = expanded && form.providers[expanded]?.enabled ? expanded : null;
+        initialSnapshot = snapshot(form);
+        await showSuccessToast('components.toasts.settings-save-success');
+        return;
+      }
 
       for (const key of providerKeys) {
         const provider = form.providers[key];
@@ -488,7 +534,7 @@
       await showSuccessToast('components.toasts.settings-save-success');
     } catch (e) {
       console.error('[pano-plugin-social-login] Failed to save config', e);
-      await showErrorToast('components.toasts.settings-save-error');
+      await showErrorToast(pluginKey('plugin-settings.save-error'));
     } finally {
       saving = false;
     }

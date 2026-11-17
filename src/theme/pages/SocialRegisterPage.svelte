@@ -168,6 +168,7 @@
   import { resolveSocialError } from '../lib/errors.js';
   import { finishLogin } from '../lib/signIn.js';
   import ApiUtil from '@panomc/sdk/utils/api';
+  import { api } from '@panomc/sdk/plugin-api';
   import { getHost } from '../lib/host.js';
   import ProviderIcon from '../../components/ProviderIcon.svelte';
   import { onMount } from 'svelte';
@@ -278,19 +279,18 @@
     error = null;
 
     try {
-      const res = await fetch('/api/plugins/pano-plugin-social-login/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Through the plugin-scoped client: it sends X-CSRF-Token, which core requires once a session cookie exists.
+      const body = await api.post({
+        path: '/register',
+        body: {
           pendingToken: token,
           username,
           email,
           password,
           passwordRepeat,
           agreement,
-        }),
+        },
       });
-      const body = await res.json();
 
       if (body.error) {
         error = resolveError(body.error.code);

@@ -128,7 +128,10 @@ export default class SocialLoginPlugin extends PanoPlugin {
             path: '/config',
             request: event,
           });
-          data.addon.config = config;
+          // On an error the settings view gets no providers and shows its load-error state.
+          if (config && !config.error) {
+            data.addon.config = config;
+          }
         } catch (e) {
           console.error('[pano-plugin-social-login] Failed to load panel config', e);
         }

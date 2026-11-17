@@ -141,7 +141,7 @@
   import { derived } from 'svelte/store';
   import { _ as i18n } from '@panomc/sdk/utils/language';
   import { pluginText } from '../lib/text.js';
-  import { resolveSocialError } from '../lib/errors.js';
+  import { resolveSocialError, resolveSocialErrorBody } from '../lib/errors.js';
   import { finishLogin, sitePath } from '../lib/signIn.js';
   import { getHost } from '../lib/host.js';
   import { onMount } from 'svelte';
@@ -182,7 +182,7 @@
 
       if (body.error) {
         callbackState = 'error';
-        errorMessage = resolveSocialError($_, body.error.code);
+        errorMessage = resolveSocialErrorBody($_, body.error);
         return;
       }
 

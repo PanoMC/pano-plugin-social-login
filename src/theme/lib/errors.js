@@ -13,3 +13,21 @@ export function resolveSocialError($t, code) {
   if (!msg || msg.includes(`error.${code}`)) return $t('error.generic');
   return msg;
 }
+
+const BAN_CODES = ['LOGIN_USER_IS_BANNED', 'IP_IS_BANNED'];
+
+/**
+ * Like `resolveSocialError`, for the whole `error` object of an answer: a ban (`LOGIN_USER_IS_BANNED`, `IP_IS_BANNED`)
+ * adds the reason core sends in `details.reason`, when there is one.
+ *
+ * @param {(key: string, options?: any) => string} $t
+ * @param {{ code?: string, details?: { reason?: unknown } } | undefined | null} error
+ */
+export function resolveSocialErrorBody($t, error) {
+  const msg = resolveSocialError($t, error?.code);
+  const reason = error?.details?.reason;
+  if (error?.code && BAN_CODES.includes(error.code) && typeof reason === 'string' && reason.trim()) {
+    return `${msg} ${$t('error.ban-reason', { values: { reason: reason.trim() } })}`;
+  }
+  return msg;
+}

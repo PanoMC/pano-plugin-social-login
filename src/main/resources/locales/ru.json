@@ -15,7 +15,13 @@
     "PLUGIN_DENIED_LOGIN": "Проверка не пройдена. Пройдите проверку и попробуйте снова.",
     "NO_PANEL_ACCESS": "У этой учётной записи нет доступа к панели управления.",
     "NO_LINKED_ACCOUNT": "К этому способу входа ещё не привязана учётная запись. Войдите с паролем.",
-    "SOCIAL_LOGIN_FAILED": "Провайдер не принял вход. Пожалуйста, попробуйте снова."
+    "SOCIAL_LOGIN_FAILED": "Провайдер не принял вход. Пожалуйста, попробуйте снова.",
+    "LOGIN_USER_IS_BANNED": "Этот аккаунт заблокирован.",
+    "IP_IS_BANNED": "Вход из вашей сети не разрешён.",
+    "LOGIN_EMAIL_NOT_VERIFIED": "Email этого аккаунта ещё не подтверждён. Подтвердите адрес и попробуйте снова.",
+    "SOCIAL_ACCOUNT_NOT_LINKED": "Этот аккаунт соцсети не привязан к вашему аккаунту.",
+    "NETWORK_ERROR": "Ошибка соединения. Пожалуйста, попробуйте снова.",
+    "ban-reason": "Причина: {reason}"
   },
   "two-factor": {
     "title": "Двухфакторная аутентификация",
@@ -36,7 +42,11 @@
     "none": "Нет привязанных социальных аккаунтов.",
     "unlink-button": "Отвязать",
     "will-unlink": "Будет отвязан",
-    "undo": "Отменить"
+    "undo": "Отменить",
+    "unlink-error": "Не удалось отвязать {provider}.",
+    "error": {
+      "SOCIAL_ACCOUNT_NOT_LINKED": "У этого игрока нет привязанного аккаунта этого провайдера."
+    }
   },
   "account-links": {
     "title": "Социальные аккаунты",
@@ -155,7 +165,14 @@
     },
     "debug-logging": "Журнал отладки",
     "debug-logging-desc": "Записывает подробную пошаговую информацию во время OAuth-процессов. Полезно для диагностики.",
-    "save": "Сохранить"
+    "save": "Сохранить",
+    "instagram-hint": "Войти могут только бизнес-аккаунты и аккаунты авторов Instagram.",
+    "save-error": "Не удалось сохранить настройки.",
+    "load-error": "Не удалось загрузить настройки входа через соцсети.",
+    "error": {
+      "PROVIDER_CREDENTIALS_REQUIRED": "Укажите ID клиента и секрет клиента для {provider}, прежде чем включать его.",
+      "INVALID_REDIRECT_BASE_URL": "Базовый URL перенаправления должен начинаться с http:// или https://."
+    }
   },
   "permissions": {
     "MANAGE_SOCIAL_LOGIN_SETTINGS": {
@@ -169,7 +186,8 @@
   },
   "activity-logs": {
     "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> обновил настройки плагина Social Login.",
-    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b> отвязал аккаунт <b>{provider}</b> игрока <b>{targetUsername}</b>."
+    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b> отвязал аккаунт <b>{provider}</b> игрока <b>{targetUsername}</b>.",
+    "REVEALED_SOCIAL_LOGIN_SECRET": "<b>{username}</b> просмотрел секрет клиента <b>{provider}</b>."
   },
   "fallback": {
     "callback": {

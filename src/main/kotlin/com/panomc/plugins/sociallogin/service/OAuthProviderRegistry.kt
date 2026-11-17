@@ -28,4 +28,9 @@ class OAuthProviderRegistry(
 
     fun enabledProviders(): List<SocialProvider> =
         SocialProvider.entries.filter { providers.getValue(it).isEnabled() }
+
+    /** Closes every provider's web client (plugin stop / disable). A later use creates a fresh one. */
+    fun close() {
+        providers.values.forEach { it.close() }
+    }
 }

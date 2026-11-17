@@ -15,7 +15,13 @@
     "PLUGIN_DENIED_LOGIN": "Doğrulama başarısız. Lütfen doğrulamayı tamamlayıp tekrar deneyin.",
     "NO_PANEL_ACCESS": "Bu hesabın yönetim paneline erişimi yok.",
     "NO_LINKED_ACCOUNT": "Bu giriş yöntemine bağlı bir hesap yok. Bunun yerine şifrenle giriş yap.",
-    "SOCIAL_LOGIN_FAILED": "Sağlayıcı girişi kabul etmedi. Lütfen tekrar deneyin."
+    "SOCIAL_LOGIN_FAILED": "Sağlayıcı girişi kabul etmedi. Lütfen tekrar deneyin.",
+    "LOGIN_USER_IS_BANNED": "Bu hesap yasaklanmış.",
+    "IP_IS_BANNED": "Ağınızdan giriş yapılmasına izin verilmiyor.",
+    "LOGIN_EMAIL_NOT_VERIFIED": "Bu hesabın e-posta adresi henüz doğrulanmadı. Adresinizi doğrulayıp tekrar deneyin.",
+    "SOCIAL_ACCOUNT_NOT_LINKED": "Bu sosyal hesap hesabınıza bağlı değil.",
+    "NETWORK_ERROR": "Bağlantı hatası. Lütfen tekrar deneyin.",
+    "ban-reason": "Sebep: {reason}"
   },
   "two-factor": {
     "title": "İki Adımlı Doğrulama",
@@ -36,7 +42,11 @@
     "none": "Bağlı sosyal hesap yok.",
     "unlink-button": "Bağlantıyı Kes",
     "will-unlink": "Bağlantı kesilecek",
-    "undo": "Geri Al"
+    "undo": "Geri Al",
+    "unlink-error": "{provider} bağlantısı kaldırılamadı.",
+    "error": {
+      "SOCIAL_ACCOUNT_NOT_LINKED": "Bu oyuncunun bu sağlayıcı için bağlı hesabı yok."
+    }
   },
   "account-links": {
     "title": "Sosyal Hesaplar",
@@ -155,7 +165,14 @@
     },
     "debug-logging": "Hata Ayıklama Logları",
     "debug-logging-desc": "OAuth işlemlerinde adım adım detaylı log bilgisi yazar. Sorun giderme için kullanışlıdır.",
-    "save": "Kaydet"
+    "save": "Kaydet",
+    "instagram-hint": "Yalnızca Instagram İşletme ve İçerik Üreticisi hesapları giriş yapabilir.",
+    "save-error": "Ayarlar kaydedilemedi.",
+    "load-error": "Sosyal giriş ayarları yüklenemedi.",
+    "error": {
+      "PROVIDER_CREDENTIALS_REQUIRED": "{provider} etkinleştirilmeden önce istemci kimliği ve istemci gizli anahtarı girin.",
+      "INVALID_REDIRECT_BASE_URL": "Yönlendirme temel URL'si http:// veya https:// ile başlamalıdır."
+    }
   },
   "permissions": {
     "MANAGE_SOCIAL_LOGIN_SETTINGS": {
@@ -169,7 +186,8 @@
   },
   "activity-logs": {
     "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> Sosyal Giriş eklenti ayarlarını güncelledi.",
-    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b>, <b>{targetUsername}</b> oyuncusunun <b>{provider}</b> hesabının bağlantısını kesti."
+    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b>, <b>{targetUsername}</b> oyuncusunun <b>{provider}</b> hesabının bağlantısını kesti.",
+    "REVEALED_SOCIAL_LOGIN_SECRET": "<b>{username}</b>, <b>{provider}</b> istemci gizli anahtarını görüntüledi."
   },
   "fallback": {
     "callback": {

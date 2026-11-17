@@ -15,7 +15,13 @@
     "PLUGIN_DENIED_LOGIN": "Verification failed. Please complete the challenge and try again.",
     "NO_PANEL_ACCESS": "This account has no access to the management panel.",
     "NO_LINKED_ACCOUNT": "No account is linked to this sign-in method yet. Sign in with your password instead.",
-    "SOCIAL_LOGIN_FAILED": "The provider did not accept the sign-in. Please try again."
+    "SOCIAL_LOGIN_FAILED": "The provider did not accept the sign-in. Please try again.",
+    "LOGIN_USER_IS_BANNED": "This account is banned.",
+    "IP_IS_BANNED": "Sign-in is not allowed from your network.",
+    "LOGIN_EMAIL_NOT_VERIFIED": "This account's email is not verified yet. Confirm your address, then try again.",
+    "SOCIAL_ACCOUNT_NOT_LINKED": "This social account is not linked to your account.",
+    "NETWORK_ERROR": "Connection error. Please try again.",
+    "ban-reason": "Reason: {reason}"
   },
   "two-factor": {
     "title": "Two-Factor Authentication",
@@ -36,7 +42,11 @@
     "none": "No social accounts linked.",
     "unlink-button": "Unlink",
     "will-unlink": "Will be unlinked",
-    "undo": "Undo"
+    "undo": "Undo",
+    "unlink-error": "Could not unlink {provider}.",
+    "error": {
+      "SOCIAL_ACCOUNT_NOT_LINKED": "This player has no linked account for that provider."
+    }
   },
   "account-links": {
     "title": "Social Accounts",
@@ -155,7 +165,14 @@
     },
     "debug-logging": "Debug Logging",
     "debug-logging-desc": "Log detailed step-by-step information during OAuth flows. Useful for troubleshooting.",
-    "save": "Save"
+    "save": "Save",
+    "instagram-hint": "Only Instagram Business and Creator accounts can sign in.",
+    "save-error": "Could not save settings.",
+    "load-error": "Could not load social login settings.",
+    "error": {
+      "PROVIDER_CREDENTIALS_REQUIRED": "Enter a client ID and client secret for {provider} before enabling it.",
+      "INVALID_REDIRECT_BASE_URL": "Redirect base URL must start with http:// or https://."
+    }
   },
   "permissions": {
     "MANAGE_SOCIAL_LOGIN_SETTINGS": {
@@ -169,7 +186,8 @@
   },
   "activity-logs": {
     "UPDATED_SOCIAL_LOGIN_SETTINGS": "<b>{username}</b> updated the Social Login plugin settings.",
-    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b> unlinked the <b>{provider}</b> account of player <b>{targetUsername}</b>."
+    "UNLINKED_SOCIAL_ACCOUNT": "<b>{username}</b> unlinked the <b>{provider}</b> account of player <b>{targetUsername}</b>.",
+    "REVEALED_SOCIAL_LOGIN_SECRET": "<b>{username}</b> revealed the <b>{provider}</b> client secret."
   },
   "fallback": {
     "callback": {

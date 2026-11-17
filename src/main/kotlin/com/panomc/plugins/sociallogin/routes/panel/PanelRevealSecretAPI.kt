@@ -5,12 +5,15 @@ import com.panomc.platform.api.config.PluginConfigManager
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.error.NotFound
+import com.panomc.platform.error.RateLimited
 import com.panomc.platform.model.*
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialLoginConfig
 import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.error.InvalidPassword
+import com.panomc.plugins.sociallogin.log.RevealedSocialLoginSecretLog
 import com.panomc.plugins.sociallogin.permission.ManageSocialLoginSettingsPermission
+import com.panomc.platform.util.RateLimitManager
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.validation.ValidationHandler
 import com.panomc.platform.schema.dsl.Bodies
@@ -38,6 +41,10 @@ class PanelRevealSecretAPI(
         plugin.applicationContext.getBean(DatabaseManager::class.java)
     }
 
+    private val rateLimitManager by lazy {
+        plugin.applicationContext.getBean(RateLimitManager::class.java)
+    }
+
     @Suppress("UNCHECKED_CAST")
     private val configManager by lazy {
         plugin.pluginBeanContext.getBean(PluginConfigManager::class.java) as PluginConfigManager<SocialLoginConfig>
@@ -57,6 +64,14 @@ class PanelRevealSecretAPI(
     override suspend fun handle(context: RoutingContext): Result {
         authProvider.requirePermission(ManageSocialLoginSettingsPermission(), context)
 
+        // The password check is a login oracle: cap attempts with the platform's AUTH tier.
+        val ip = rateLimitManager.getClientIp(context)
+        if (!rateLimitManager.isAllowed(ip, RateLimitManager.Tier.AUTH)) {
+            throw RateLimited(
+                extras = mapOf("retryAfter" to rateLimitManager.retryAfter(ip, RateLimitManager.Tier.AUTH))
+            )
+        }
+
         val body = context.body().asJsonObject()
         val provider = SocialProvider.fromKey(body.getString("provider")) ?: throw NotFound()
         val password = body.getString("password")
@@ -68,6 +83,16 @@ class PanelRevealSecretAPI(
         if (!databaseManager.userDao.isLoginCorrect(username, password, sqlClient)) {
             throw InvalidPassword()
         }
+
+        databaseManager.panelActivityLogDao.add(
+            RevealedSocialLoginSecretLog(
+                userId,
+                username,
+                provider.key,
+                plugin.pluginId
+            ),
+            sqlClient
+        )
 
         return Successful(mapOf("clientSecret" to configManager.config.clientSecret(provider)))
     }

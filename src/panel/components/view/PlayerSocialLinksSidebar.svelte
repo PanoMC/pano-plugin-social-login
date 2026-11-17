@@ -64,6 +64,7 @@
   import { _, PROVIDER_META } from '../../../main.js';
   import ProviderIcon from '../../../components/ProviderIcon.svelte';
   import { api } from '@panomc/sdk/plugin-api';
+  import { socialLinksChanged } from '../../linksChanged.js';
 
   export let playerData;
 
@@ -81,6 +82,16 @@
   } else if (playerData?.username && playerData.username !== lastFetchedUsername) {
     lastFetchedUsername = playerData.username;
     loadData();
+  }
+
+  // The edit modal unlinked accounts of this player: the layout's socialPreload is stale now.
+  let lastChangeAt = 0;
+  $: if ($socialLinksChanged && $socialLinksChanged.at !== lastChangeAt) {
+    lastChangeAt = $socialLinksChanged.at;
+    if ($socialLinksChanged.username === playerData?.username) {
+      socialPreload = undefined;
+      loadData();
+    }
   }
 
   async function loadData() {

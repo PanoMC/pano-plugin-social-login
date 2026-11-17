@@ -5,8 +5,10 @@ import com.panomc.platform.api.config.PluginConfigManager
 import com.panomc.platform.auth.AuthProvider
 import com.panomc.platform.db.DatabaseManager
 import com.panomc.platform.model.*
+import com.panomc.platform.model.Error
 import com.panomc.plugins.sociallogin.SocialLoginPlugin
 import com.panomc.plugins.sociallogin.config.SocialLoginConfig
+import com.panomc.plugins.sociallogin.config.SocialProvider
 import com.panomc.plugins.sociallogin.log.UpdatedSocialLoginSettingsLog
 import com.panomc.plugins.sociallogin.permission.ManageSocialLoginSettingsPermission
 import io.vertx.core.json.JsonObject
@@ -18,6 +20,15 @@ import io.vertx.json.schema.SchemaRepository
 import io.vertx.json.schema.common.dsl.Schemas.booleanSchema
 import io.vertx.json.schema.common.dsl.Schemas.objectSchema
 import io.vertx.json.schema.common.dsl.Schemas.stringSchema
+
+/** `redirectBaseUrl` is set but is not an absolute http(s):// URL. */
+class InvalidRedirectBaseUrl : Error("INVALID_REDIRECT_BASE_URL", 400)
+
+/** A provider is enabled but its client ID or client secret (stored or sent) is blank; `details.provider` names it. */
+class ProviderCredentialsRequired(provider: String) :
+    Error("PROVIDER_CREDENTIALS_REQUIRED", 400, extras = mapOf("provider" to provider))
+
+private val ABSOLUTE_HTTP_URL = Regex("""^https?://[^\s/?#]+[^\s]*$""",RegexOption.IGNORE_CASE)
 
 /**
  * Admin endpoint: persists the plugin config. The incoming body is merged onto the current
@@ -85,9 +96,18 @@ class PanelUpdateSocialLoginConfigAPI(
         fun secret(key: String, currentValue: String) =
             body.getString(key)?.takeIf { it.isNotBlank() } ?: currentValue
 
+        // Blank = fall back to the platform websiteUrl; otherwise an absolute http(s) origin,
+        // stored without a trailing slash (the callback path is appended to it).
+        val redirectBaseUrl = body.getString("redirectBaseUrl", current.redirectBaseUrl).trim().trimEnd('/')
+
+        if (redirectBaseUrl.isNotEmpty() && !ABSOLUTE_HTTP_URL.matches(redirectBaseUrl)) {
+            throw InvalidRedirectBaseUrl()
+        }
+
         // Merge: every field falls back to its current value when the body omits it.
         val merged = JsonObject()
-            .put("redirectBaseUrl", body.getString("redirectBaseUrl", current.redirectBaseUrl))
+            .put("version", current.version)
+            .put("redirectBaseUrl", redirectBaseUrl)
             .put("debugLogging", body.getBoolean("debugLogging", current.debugLogging))
             .put("googleEnabled", body.getBoolean("googleEnabled", current.googleEnabled))
             .put("googleClientId", body.getString("googleClientId", current.googleClientId))
@@ -110,6 +130,16 @@ class PanelUpdateSocialLoginConfigAPI(
             .put("instagramEnabled", body.getBoolean("instagramEnabled", current.instagramEnabled))
             .put("instagramClientId", body.getString("instagramClientId", current.instagramClientId))
             .put("instagramClientSecret", secret("instagramClientSecret", current.instagramClientSecret))
+
+        // An enabled provider needs both credentials, or its sign-in button would only fail.
+        SocialProvider.entries.forEach { provider ->
+            if (merged.getBoolean("${provider.key}Enabled") &&
+                (merged.getString("${provider.key}ClientId").isNullOrBlank() ||
+                    merged.getString("${provider.key}ClientSecret").isNullOrBlank())
+            ) {
+                throw ProviderCredentialsRequired(provider.key)
+            }
+        }
 
         configManager.saveConfig(merged)
 

@@ -13,7 +13,7 @@ class FacebookOAuthService(
     override val provider = SocialProvider.FACEBOOK
 
     companion object {
-        private const val GRAPH_VERSION = "v19.0"
+        private const val GRAPH_VERSION = "v23.0"
         private const val AUTH_URL = "https://www.facebook.com/$GRAPH_VERSION/dialog/oauth"
         private const val TOKEN_URL = "https://graph.facebook.com/$GRAPH_VERSION/oauth/access_token"
         private const val USER_URL = "https://graph.facebook.com/$GRAPH_VERSION/me"
@@ -82,8 +82,8 @@ class FacebookOAuthService(
             ?: throw RuntimeException("Facebook user response had no id")
         val name = user.getString("name")
         val email = user.getString("email")
-        // Facebook only returns an email when it is confirmed on the account.
-        val emailVerified = email != null
+        // Facebook does not promise that the email it returns is confirmed, so it is never trusted as verified.
+        val emailVerified = false
         val avatarUrl = user.getJsonObject("picture")
             ?.getJsonObject("data")
             ?.getString("url")

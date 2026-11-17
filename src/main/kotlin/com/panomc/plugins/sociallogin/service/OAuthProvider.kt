@@ -8,6 +8,7 @@ import io.vertx.ext.web.client.WebClient
 import io.vertx.ext.web.client.WebClientOptions
 import org.slf4j.LoggerFactory
 import java.net.URLEncoder
+import java.util.concurrent.TimeUnit
 
 /**
  * Base class for a single social provider's OAuth implementation. Concrete subclasses only
@@ -19,16 +20,46 @@ abstract class OAuthProvider(
 ) {
     abstract val provider: SocialProvider
 
+    companion object {
+        private const val CONNECT_TIMEOUT_MS = 10_000
+        private const val IDLE_TIMEOUT_SECONDS = 15
+    }
+
     /** X (formerly Twitter) requires PKCE; the others use the classic confidential-client flow. */
     open val usesPkce: Boolean = false
 
-    protected val webClient: WebClient by lazy {
-        WebClient.create(vertx, WebClientOptions().setSsl(true).setTrustAll(false))
+    @Volatile
+    private var client: WebClient? = null
+
+    /**
+     * Created on first use, on the host Vert.x. Timeouts keep a hanging provider from hanging the sign-in: the
+     * connect gives up after [CONNECT_TIMEOUT_MS], a connection that sends nothing for [IDLE_TIMEOUT_SECONDS]
+     * is closed. [close] drops it; the next use creates a fresh one.
+     */
+    protected val webClient: WebClient
+        get() = client ?: synchronized(this) {
+            client ?: WebClient.create(
+                vertx,
+                WebClientOptions()
+                    .setSsl(true)
+                    .setTrustAll(false)
+                    .setConnectTimeout(CONNECT_TIMEOUT_MS)
+                    .setIdleTimeout(IDLE_TIMEOUT_SECONDS)
+                    .setIdleTimeoutUnit(TimeUnit.SECONDS)
+            ).also { client = it }
+        }
+
+    /** Closes the web client, if one was created. Called when the plugin stops or is disabled. */
+    fun close() {
+        val current = synchronized(this) { client.also { client = null } } ?: return
+        runCatching { current.close() }
     }
 
     protected val logger by lazy { LoggerFactory.getLogger("SocialLogin:${provider.key}") }
 
-    fun isEnabled(): Boolean = configManager.config.isEnabled(provider)
+    /** Switched on and fully configured: a provider without a client id or secret is never offered or accepted. */
+    fun isEnabled(): Boolean = configManager.config.isEnabled(provider) &&
+        clientId().isNotBlank() && clientSecret().isNotBlank()
 
     protected fun clientId(): String = configManager.config.clientId(provider)
 

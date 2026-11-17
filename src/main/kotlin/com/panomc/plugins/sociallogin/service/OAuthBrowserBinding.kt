@@ -6,6 +6,8 @@ import com.panomc.platform.util.TrustedProxyIpResolver
 import io.vertx.core.http.Cookie
 import io.vertx.core.http.CookieSameSite
 import io.vertx.ext.web.RoutingContext
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
@@ -130,6 +132,25 @@ object OAuthBrowserBinding {
         }
     }
 
+    /**
+     * A listed proxy, or a loopback / private-network peer (the platform's default `trust-private-proxies`).
+     * Deliberately not `TrustedProxyIpResolver.isTrustedPeer`: Pano v1.2.1 changed its JVM signature (a third,
+     * defaulted parameter), so a plugin compiled against one version throws NoSuchMethodError on the other.
+     * `isTrustedProxy(String, List)` is the same in every version.
+     */
+    private fun isTrustedPeer(peer: String, trustedProxies: List<String>): Boolean {
+        if (TrustedProxyIpResolver.isTrustedProxy(peer, trustedProxies)) return true
+
+        val address = try {
+            InetAddress.getByName(peer.removePrefix("[").removeSuffix("]"))
+        } catch (_: Exception) {
+            return false
+        }
+
+        return address.isLoopbackAddress || address.isSiteLocalAddress || address.isLinkLocalAddress ||
+            (address is Inet6Address && (address.address[0].toInt() and 0xfe) == 0xfc)
+    }
+
     private fun constantTimeEquals(a: String, b: String): Boolean =
         MessageDigest.isEqual(a.toByteArray(), b.toByteArray())
 
@@ -142,7 +163,7 @@ object OAuthBrowserBinding {
         if (request.isSSL) return true
 
         val peer = request.remoteAddress()?.host().orEmpty()
-        if (peer.isEmpty() || !TrustedProxyIpResolver.isTrustedPeer(peer, trustedProxies)) return false
+        if (peer.isEmpty() || !isTrustedPeer(peer, trustedProxies)) return false
 
         return request.getHeader("X-Forwarded-Proto")
             ?.split(",")?.any { it.trim().equals("https", ignoreCase = true) } == true

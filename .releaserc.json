@@ -10,6 +10,27 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     [
+      "@PanoMC/semantic-release-pano",
+      {
+        "file": "build/libs/pano-plugin-social-login-${version}.jar",
+        "panoVersion": "1.2.0",
+        "configs": [
+          {
+            "resourceId": "pano-plugin-social-login",
+            "panoUrl": "https://api-dev.panomc.com",
+            "tokenVar": "PANO_TOKEN",
+            "branches": ["dev"]
+          },
+          {
+            "resourceId": "pano-plugin-social-login",
+            "panoUrl": "https://api.panomc.com",
+            "tokenVar": "PANO_PROD_TOKEN",
+            "branches": ["main"]
+          }
+        ]
+      }
+    ],
+    [
       "@semantic-release/github",
       {
         "assets": [

@@ -27,12 +27,11 @@
     "ban-reason": "Reason: {reason}"
   },
   "sidebar": {
-    "title": "Linked Social Accounts",
+    "title": "Social Accounts",
     "none": "No social accounts linked."
   },
   "panel-edit": {
-    "title": "Linked Social Accounts",
-    "desc": "Social accounts this player can sign in with.",
+    "title": "Social Accounts",
     "none": "No social accounts linked.",
     "unlink-button": "Unlink",
     "will-unlink": "Will be unlinked",

@@ -33,7 +33,6 @@
 
 <div class="card mt-3 animate__animated animate__fadeIn">
   <div class="card-header d-flex align-items-center gap-2">
-    <i class="fas fa-link text-secondary"></i>
     <span>{$_('sidebar.title')}</span>
   </div>
   <div class="card-body">
@@ -42,14 +41,19 @@
         <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
       </div>
     {:else if links.length === 0}
-      <p class="text-muted small mb-0">{$_('sidebar.none')}</p>
+      <NoContent />
     {:else}
       <div class="vstack gap-2">
         {#each links as link (link.provider)}
           {@const meta = PROVIDER_META[link.provider]}
           <div class="d-flex align-items-center gap-2">
-            <ProviderIcon {meta} colored />
-            <span class="fw-semibold">{meta?.name || link.provider}</span>
+            <span
+              class="d-inline-flex"
+              role="img"
+              aria-label={meta?.name || link.provider}
+              title={meta?.name || link.provider}>
+              <ProviderIcon {meta} colored />
+            </span>
             {#if link.displayName}
               <span class="text-muted small text-truncate">{link.displayName}</span>
             {/if}
@@ -66,6 +70,7 @@
   import { api } from '@panomc/sdk/plugin-api';
   import { get } from 'svelte/store';
   import { socialLinksChanged } from '../../linksChanged.js';
+  import { NoContent } from '@panomc/sdk/components/panel';
 
   export let playerData;
 

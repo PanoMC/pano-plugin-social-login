@@ -16,10 +16,9 @@
 <div class="social-login-social-account-links row pt-2 pb-3 mb-3 border-bottom">
   <div class="col-md-4 col-form-label pb-2">
     <div class="d-flex align-items-center gap-2 mb-2">
-      <i class="fas fa-link text-secondary"></i>
       <span class="fw-bold">{$_('account-links.title')}</span>
     </div>
-    <p class="text-secondary small mt-1 mb-0">{$_('account-links.desc')}</p>
+    <p class="text-body-secondary small mt-1 mb-0">{$_('account-links.desc')}</p>
   </div>
 
   <div class="col col-form-label">

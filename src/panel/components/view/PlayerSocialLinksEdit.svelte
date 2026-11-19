@@ -1,16 +1,13 @@
 <div class="pt-2 pb-3 mb-3 border-bottom animate__animated animate__fadeIn">
   <div class="d-flex align-items-center gap-2 mb-1">
-    <i class="fas fa-link text-secondary"></i>
     <span class="fw-bold">{$_('panel-edit.title')}</span>
   </div>
-  <p class="text-secondary small mb-3">{$_('panel-edit.desc')}</p>
-
   {#if loading}
     <div class="d-flex justify-content-center py-2">
       <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
     </div>
   {:else if links.length === 0}
-    <p class="text-muted small mb-0">{$_('panel-edit.none')}</p>
+    <NoContent />
   {:else}
     <div class="vstack gap-2">
       {#each links as link (link.provider)}
@@ -54,6 +51,7 @@
   import { showErrorToast } from '../../toast.util.js';
   import { socialLinksChanged } from '../../linksChanged.js';
   import { PLUGIN_ID } from '../../../theme/lib/text.js';
+  import { NoContent } from '@panomc/sdk/components/panel';
 
   export let playerData;
   export let onHookRegister;

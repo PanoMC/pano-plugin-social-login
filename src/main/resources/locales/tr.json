@@ -27,12 +27,11 @@
     "ban-reason": "Sebep: {reason}"
   },
   "sidebar": {
-    "title": "Bağlı Sosyal Hesaplar",
+    "title": "Sosyal Hesaplar",
     "none": "Bağlı sosyal hesap yok."
   },
   "panel-edit": {
-    "title": "Bağlı Sosyal Hesaplar",
-    "desc": "Bu oyuncunun giriş yapabileceği sosyal hesaplar.",
+    "title": "Sosyal Hesaplar",
     "none": "Bağlı sosyal hesap yok.",
     "unlink-button": "Bağlantıyı Kes",
     "will-unlink": "Bağlantı kesilecek",

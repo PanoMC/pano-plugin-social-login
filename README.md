@@ -13,7 +13,8 @@
 
 Social Login adds one-click sign-in buttons to your Pano website, so players can join your community with an account they already have. New players sign up in seconds, and existing players can link several accounts to their profile. You turn each service on or off from the panel.
 
-## ✨ Features
+<h3 align="center">Features</h3>
+
 - 🌍 **Seven popular services**: Google, Discord, Facebook, X, GitHub, Twitch and Instagram.
 - ⚡ **One-click sign-up**: New players create an account with a social account and just pick a username.
 - 🔗 **Link many accounts**: Players connect several social accounts to one profile from their settings.
@@ -22,7 +23,7 @@ Social Login adds one-click sign-in buttons to your Pano website, so players can
 - 🛠️ **Staff controls**: See and remove a player's linked accounts from their player page.
 - 🔒 **Secrets stay hidden**: App secrets are only shown after you confirm your password, and every change is logged.
 
-## 📸 Screenshots
+<h3 align="center">Screenshots</h3>
 
 <p align="center"><img src=".github/assets/linked-accounts.png" alt="Social accounts in the player's account settings" width="700" /></p>
 <p align="center"><i>Players link or unlink their social accounts from their settings.</i></p>
@@ -30,13 +31,16 @@ Social Login adds one-click sign-in buttons to your Pano website, so players can
 <p align="center"><img src=".github/assets/panel.png" alt="Social Login settings in the Pano panel" width="900" /></p>
 <p align="center"><i>Switch each service on or off from one settings page.</i></p>
 
-## 🚀 Get started
+<h3 align="center">Get started</h3>
+
 1. Open your Pano panel and go to **Addons**.
 2. Find **Social Login** and click **Install**.
 3. In the addon's **Settings** tab, turn on a service and follow its setup guide to add your app details.
 
-## 💬 Support
+<h3 align="center">Support</h3>
+
 Questions or ideas? Join our [Discord](https://panomc.com/discord) or visit [panomc.com](https://panomc.com).
 
-## 📄 License
+<h3 align="center">License</h3>
+
 Released under the MIT License.

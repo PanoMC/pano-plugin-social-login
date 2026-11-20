@@ -86,7 +86,7 @@ dependencies {
         compileOnly(project(":Pano"))
     } else {
         // Pano v1.2.0 by its commit (530b40781c): the security fixes use its mail API (MailManager.sendTemplate).
-        compileOnly("com.github.panomc:pano:530b40781c")
+        compileOnly("com.github.panomc:pano:v1.4.0")
     }
 
     // Unit tests of the error classes, the endpoint docs and the built-in page (they extend or call the host's classes).
@@ -97,7 +97,7 @@ dependencies {
     if (bootstrap) {
         testImplementation(project(":Pano"))
     } else {
-        testImplementation("com.github.panomc:pano:530b40781c")
+        testImplementation("com.github.panomc:pano:v1.4.0")
     }
     testImplementation("io.vertx:vertx-web:${vertxVersion}")
     testImplementation("io.vertx:vertx-lang-kotlin:${vertxVersion}")

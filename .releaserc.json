@@ -13,7 +13,7 @@
       "@PanoMC/semantic-release-pano",
       {
         "file": "build/libs/pano-plugin-social-login-${version}.jar",
-        "panoVersion": "1.2.0",
+        "panoVersion": "1.4.0",
         "configs": [
           {
             "resourceId": "pano-plugin-social-login",

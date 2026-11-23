@@ -49,7 +49,11 @@ class SocialLoginPlugin : PanoPlugin() {
     }
 
     internal suspend fun startPlugin() {
-        if (isInitialized) return
+        if (isInitialized) {
+            // Stop -> start in the same context: onStop cancelled the purge timer, start it again (idempotent).
+            startPurgeTimer()
+            return
+        }
 
         if (!setupManager.isSetupDone()) {
             logger.info("Setup is not finished, waiting for setup completion...")

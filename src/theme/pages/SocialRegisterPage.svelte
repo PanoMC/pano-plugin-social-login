@@ -141,7 +141,7 @@
               class:disabled={loading || !canSubmit}
               disabled={loading || !canSubmit}>
               {#if loading}
-                <span class="spinner-border spinner-border-sm me-2" role="status" aria-label="Loading"></span>
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
                 <span>{$_('register.submitting')}</span>
               {:else}
                 {$_('register.submit')}

@@ -6,7 +6,7 @@
     "INVALID_FLOW_STATE": "This sign-in link is invalid or has expired. Please start again.",
     "PROVIDER_NOT_ENABLED": "This sign-in method is currently unavailable.",
     "SOCIAL_ACCOUNT_ALREADY_LINKED": "This social account is already linked to another user.",
-    "NOT_LOGGED_IN": "You need to be logged in to do that.",
+    "NOT_LOGGED_IN": "You need to be signed in to do that.",
     "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
     "NOT_FOUND": "Something went wrong. Please try again.",
     "access_denied": "Sign-in was canceled.",
@@ -58,7 +58,7 @@
     "link-success": "Account linked successfully!",
     "redirecting": "Redirecting...",
     "error": "Social login failed",
-    "back-to-login": "Back to Login",
+    "back-to-login": "Back to Sign In",
     "no-code": "No authorization code received."
   },
   "complete": {
@@ -67,7 +67,7 @@
     "invalid-token": "This sign-in link has expired. Please try again from the start.",
     "username-required-title": "Choose a new username",
     "username-required": "Your account needs a new username before you can sign in. Sign in with your password on the login page to choose one.",
-    "username-required-action": "Go to Login"
+    "username-required-action": "Go to Sign In"
   },
   "register": {
     "title": "Create Your Account",
@@ -77,16 +77,16 @@
     "email-label": "Email",
     "password-label": "Password",
     "password-repeat-label": "Repeat Password",
-    "agreement": "I have read and accept {link}.",
+    "agreement": "I have read and accept the {link}.",
     "server-rules": "Server Rules",
     "submit": "Create Account",
     "submitting": "Creating account...",
     "success": "Account created! Redirecting...",
     "verify-email": "Account created. We sent a confirmation link to {email}: confirm your address, then sign in.",
-    "back-to-login": "Back to Login",
+    "back-to-login": "Back to Sign In",
     "error": {
       "REGISTER_USERNAME_NOT_AVAILABLE": "This username is already taken. Please choose another one.",
-      "REGISTER_EMAIL_NOT_AVAILABLE": "An account with this email already exists. Log in instead and link your account from settings.",
+      "REGISTER_EMAIL_NOT_AVAILABLE": "An account with this email already exists. Sign in instead and link your account from settings.",
       "REGISTER_USERNAME_EMPTY": "Please enter a username.",
       "REGISTER_EMAIL_EMPTY": "Please enter an email address.",
       "REGISTER_USERNAME_TOO_SHORT": "Username must be at least 3 characters.",
@@ -105,13 +105,13 @@
   },
   "link-existing": {
     "title": "Account Already Exists",
-    "description": "An account using {email} already exists. Log in to link your social account to it.",
+    "description": "An account using {email} already exists. Sign in to link your social account to it.",
     "username-label": "Username or Email",
     "password-label": "Password",
-    "submit": "Log In & Link",
+    "submit": "Sign In & Link",
     "submitting": "Linking...",
     "success": "Account linked! Redirecting...",
-    "back-to-login": "Back to Login",
+    "back-to-login": "Back to Sign In",
     "error": {
       "LOGIN_IS_INVALID": "Incorrect username/email or password.",
       "LOGIN_USER_IS_BANNED": "This account is banned.",
